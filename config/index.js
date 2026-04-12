@@ -16,6 +16,7 @@ const config = {
   scanCron: process.env.SCAN_CRON || "*/1 * * * *",
   redisUrl: process.env.REDIS_URL || "redis://localhost:6379",
   apiKey: process.env.API_KEY || "",
+  grpcPort: parseInt(process.env.GRPC_PORT, 10) || 50051,
 };
 
 module.exports = config;

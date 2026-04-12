@@ -13,6 +13,7 @@ const createResendSender = require("./services/senders/resendSender");
 const createSubscriptionService = require("./services/subscriptionService");
 const createScannerService = require("./services/scannerService");
 const createApp = require("./app");
+const createGrpcServer = require("./grpc/server");
 
 const start = async () => {
   await runMigrations(pool);
@@ -71,6 +72,9 @@ const start = async () => {
   });
 
   scannerService.start(config.scanCron);
+
+  const grpcServer = createGrpcServer(subscriptionService);
+  grpcServer.start(config.grpcPort);
 };
 
 start().catch((err) => {

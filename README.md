@@ -75,6 +75,7 @@ npm start
 | `SCAN_CRON` | Cron expression for release scanning | `*/1 * * * *` (every minute) |
 | `REDIS_URL` | Redis connection URL for caching GitHub API responses (TTL 10 min) | `redis://localhost:6379` |
 | `API_KEY` | API key for endpoint authentication (empty = auth disabled) | — |
+| `GRPC_PORT` | Port for gRPC server | `50051` |
 
 ## API Endpoints
 
@@ -87,6 +88,21 @@ npm start
 | GET | `/metrics` | Prometheus metrics |
 
 Full API documentation: see `swagger.yaml` (viewable at https://editor.swagger.io/)
+
+## gRPC Interface
+
+A gRPC server runs alongside the REST API on port 50051 (configurable via `GRPC_PORT`). The proto definition is at `grpc/subscription.proto`.
+
+Available RPCs:
+- `Subscribe(email, repo)` — subscribe to release notifications
+- `Confirm(token)` — confirm subscription
+- `Unsubscribe(token)` — unsubscribe
+- `GetSubscriptions(email)` — list active subscriptions
+
+Example with grpcurl:
+```bash
+grpcurl -plaintext -d '{"email":"user@example.com","repo":"golang/go"}' localhost:50051 subscription.SubscriptionService/Subscribe
+```
 
 ## Subscription Flow
 
