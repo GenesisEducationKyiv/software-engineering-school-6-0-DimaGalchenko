@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GitHub Release Notifications</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0d1117; color: #c9d1d9; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+    .container { width: 100%; max-width: 480px; padding: 24px; }
+    h1 { font-size: 24px; margin-bottom: 8px; color: #f0f6fc; }
+    p.subtitle { color: #8b949e; margin-bottom: 24px; font-size: 14px; }
+    .card { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 24px; }
+    .tabs { display: flex; gap: 8px; margin-bottom: 20px; }
+    .tab { flex: 1; padding: 8px; text-align: center; border: 1px solid #30363d; border-radius: 6px; background: transparent; color: #8b949e; cursor: pointer; font-size: 13px; }
+    .tab.active { background: #21262d; color: #f0f6fc; border-color: #58a6ff; }
+    label { display: block; font-size: 13px; color: #8b949e; margin-bottom: 6px; }
+    input { width: 100%; padding: 10px 12px; background: #0d1117; border: 1px solid #30363d; border-radius: 6px; color: #c9d1d9; font-size: 14px; margin-bottom: 16px; }
+    input:focus { outline: none; border-color: #58a6ff; }
+    button[type="submit"] { width: 100%; padding: 10px; background: #238636; border: none; border-radius: 6px; color: #fff; font-size: 14px; font-weight: 600; cursor: pointer; }
+    button[type="submit"]:hover { background: #2ea043; }
+    .alert { padding: 12px; border-radius: 6px; font-size: 13px; margin-bottom: 16px; display: none; }
+    .alert.success { display: block; background: #0d2818; border: 1px solid #238636; color: #3fb950; }
+    .alert.error { display: block; background: #2d1214; border: 1px solid #da3633; color: #f85149; }
+    .section { display: none; }
+    .section.active { display: block; }
+    .subscriptions-list { list-style: none; margin-top: 12px; }
+    .subscriptions-list li { padding: 10px 12px; background: #0d1117; border: 1px solid #30363d; border-radius: 6px; margin-bottom: 8px; font-size: 13px; display: flex; justify-content: space-between; align-items: center; }
+    .subscriptions-list li span.repo { color: #58a6ff; font-weight: 600; }
+    .subscriptions-list li span.tag { color: #8b949e; }
+    .badge { font-size: 11px; padding: 2px 8px; border-radius: 12px; font-weight: 600; }
+    .badge.confirmed { background: #0d2818; border: 1px solid #238636; color: #3fb950; }
+    .badge.pending { background: #2d2400; border: 1px solid #9e6a03; color: #d29922; }
+    .empty { color: #8b949e; font-size: 13px; text-align: center; padding: 20px 0; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>GitHub Release Notifications</h1>
+    <p class="subtitle">Get notified by email when your favorite repos publish new releases.</p>
+    <div class="card">
+      <div class="tabs">
+        <button class="tab active" data-tab="subscribe">Subscribe</button>
+        <button class="tab" data-tab="subscriptions">My Subscriptions</button>
+      </div>
+
+      <div id="alert"></div>
+
+      <div id="subscribe" class="section active">
+        <form id="subscribe-form">
+          <label for="email">Email</label>
+          <input type="email" id="email" name="email" placeholder="you@example.com" required>
+          <label for="repo">Repository</label>
+          <input type="text" id="repo" name="repo" placeholder="owner/repo" required>
+          <button type="submit">Subscribe</button>
+        </form>
+      </div>
+
+      <div id="subscriptions" class="section">
+        <form id="lookup-form">
+          <label for="lookup-email">Email</label>
+          <input type="email" id="lookup-email" placeholder="you@example.com" required>
+          <button type="submit">Look up</button>
+        </form>
+        <ul class="subscriptions-list" id="subscriptions-list"></ul>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const alertEl = document.getElementById("alert");
+
+    const showAlert = (message, type) => {
+      alertEl.textContent = message;
+      alertEl.className = "alert " + type;
+      setTimeout(() => { alertEl.className = "alert"; }, 5000);
+    };
+
+    document.querySelectorAll(".tab").forEach((tab) => {
+      tab.addEventListener("click", () => {
+        document.querySelectorAll(".tab").forEach((t) => t.classList.remove("active"));
+        document.querySelectorAll(".section").forEach((s) => s.classList.remove("active"));
+        tab.classList.add("active");
+        document.getElementById(tab.dataset.tab).classList.add("active");
+        alertEl.className = "alert";
+      });
+    });
+
+    document.getElementById("subscribe-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const email = document.getElementById("email").value;
+      const repo = document.getElementById("repo").value;
+
+      try {
+        const res = await fetch("/api/subscribe", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, repo }),
+        });
+        const data = await res.json();
+
+        if (res.ok) {
+          showAlert(data.message, "success");
+          e.target.reset();
+        } else {
+          showAlert(data.message, "error");
+        }
+      } catch {
+        showAlert("Network error. Please try again.", "error");
+      }
+    });
+
+    document.getElementById("lookup-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const email = document.getElementById("lookup-email").value;
+      const list = document.getElementById("subscriptions-list");
+
+      try {
+        const res = await fetch("/api/subscriptions?email=" + encodeURIComponent(email));
+        const data = await res.json();
+
+        if (!res.ok) {
+          showAlert(data.message, "error");
+          list.innerHTML = "";
+          return;
+        }
+
+        if (data.length === 0) {
+          list.innerHTML = '<li class="empty">No active subscriptions found.</li>';
+          return;
+        }
+
+        list.innerHTML = data.map((sub) => {
+          const status = sub.confirmed
+            ? '<span class="badge confirmed">Confirmed</span>'
+            : '<span class="badge pending">Pending</span>';
+          const tag = sub.last_seen_tag || "no releases yet";
+          return '<li><span class="repo">' + sub.repo + '</span>' +
+            '<span class="tag">' + tag + ' ' + status + '</span></li>';
+        }).join("");
+      } catch {
+        showAlert("Network error. Please try again.", "error");
+      }
+    });
+  </script>
+</body>
+</html>
