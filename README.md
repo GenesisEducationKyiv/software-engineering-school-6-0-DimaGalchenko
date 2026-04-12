@@ -2,6 +2,8 @@
 
 **Deployed app**: https://software-engineering-school-testcase-2026.onrender.com/
 
+**Demo video**: https://www.loom.com/share/ab961d59822a450f811aa8df63c61598
+
 REST API service that allows users to subscribe to email notifications about new releases of any GitHub repository.
 
 ## Architecture
