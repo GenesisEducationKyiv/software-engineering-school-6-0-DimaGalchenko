@@ -1,6 +1,6 @@
 # GitHub Release Notification API
 
-**Live demo**: https://software-engineering-school-testcase-2026.onrender.com/
+**Deployed app**: https://software-engineering-school-testcase-2026.onrender.com/
 
 REST API service that allows users to subscribe to email notifications about new releases of any GitHub repository.
 
