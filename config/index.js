@@ -7,8 +7,11 @@ const config = {
     apiBase: "https://api.github.com",
   },
   email: {
+    provider: process.env.EMAIL_PROVIDER || "nodemailer",
+    from: process.env.EMAIL_FROM || process.env.EMAIL_USER || "",
     user: process.env.EMAIL_USER || "",
     pass: process.env.EMAIL_PASS || "",
+    resendApiKey: process.env.RESEND_API_KEY || "",
   },
   scanCron: process.env.SCAN_CRON || "*/1 * * * *",
   redisUrl: process.env.REDIS_URL || "redis://localhost:6379",

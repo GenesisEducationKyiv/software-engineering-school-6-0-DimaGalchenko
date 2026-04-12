@@ -7,12 +7,12 @@ const EMAIL_WRAPPER_END = `
   <p style="text-align:center;margin-top:16px;font-size:12px;color:#484f58;">GitHub Release Notifications</p>
 </div>`;
 
-const createEmailService = ({ transporter, config }) => {
+const createEmailService = ({ sender, config }) => {
   const sendConfirmation = async (email, confirmToken) => {
     const confirmUrl = `${config.baseUrl}/confirm/${confirmToken}`;
 
-    await transporter.sendMail({
-      from: config.email.user,
+    await sender.send({
+      from: config.email.from,
       to: email,
       subject: "Confirm your subscription",
       html: `${EMAIL_WRAPPER_START}
@@ -27,8 +27,8 @@ const createEmailService = ({ transporter, config }) => {
   const sendReleaseNotification = async (email, repo, tagName, htmlUrl, unsubscribeToken) => {
     const unsubscribeUrl = `${config.baseUrl}/unsubscribe/${unsubscribeToken}`;
 
-    await transporter.sendMail({
-      from: config.email.user,
+    await sender.send({
+      from: config.email.from,
       to: email,
       subject: `New release ${tagName} for ${repo}`,
       html: `${EMAIL_WRAPPER_START}

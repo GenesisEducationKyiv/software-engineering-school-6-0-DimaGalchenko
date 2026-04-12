@@ -8,6 +8,8 @@ const createSubscriptionRepository = require("./repositories/subscriptionReposit
 const createGithubService = require("./services/githubService");
 const { createCacheService, createNullCacheService } = require("./services/cacheService");
 const createEmailService = require("./services/emailService");
+const createNodemailerSender = require("./services/senders/nodemailerSender");
+const createResendSender = require("./services/senders/resendSender");
 const createSubscriptionService = require("./services/subscriptionService");
 const createScannerService = require("./services/scannerService");
 const createApp = require("./app");
@@ -34,15 +36,21 @@ const start = async () => {
 
   const githubService = createGithubService({ config, cacheService });
 
-  const transporter = nodemailer.createTransport({
-    service: "gmail",
-    auth: {
-      user: config.email.user,
-      pass: config.email.pass,
-    },
-  });
+  let sender;
+  if (config.email.provider === "resend") {
+    sender = createResendSender(config.email.resendApiKey);
+  } else {
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: config.email.user,
+        pass: config.email.pass,
+      },
+    });
+    sender = createNodemailerSender(transporter);
+  }
 
-  const emailService = createEmailService({ transporter, config });
+  const emailService = createEmailService({ sender, config });
 
   const subscriptionService = createSubscriptionService({
     subscriptionRepository,
