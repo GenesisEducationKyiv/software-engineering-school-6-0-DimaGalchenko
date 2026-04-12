@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Unsubscribe</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0d1117; color: #c9d1d9; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+    .container { width: 100%; max-width: 480px; padding: 24px; text-align: center; }
+    .card { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 40px 24px; }
+    .icon { font-size: 48px; margin-bottom: 16px; }
+    h1 { font-size: 22px; margin-bottom: 8px; color: #f0f6fc; }
+    p { color: #8b949e; font-size: 14px; margin-bottom: 20px; }
+    .spinner { width: 32px; height: 32px; border: 3px solid #30363d; border-top-color: #58a6ff; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 16px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .success .card { border-color: #238636; }
+    .success h1 { color: #3fb950; }
+    .error .card { border-color: #da3633; }
+    .error h1 { color: #f85149; }
+    a { color: #58a6ff; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="container" id="root">
+    <div class="card">
+      <div class="spinner"></div>
+      <h1>Unsubscribing...</h1>
+      <p>Please wait a moment.</p>
+    </div>
+  </div>
+
+  <script>
+    const token = window.location.pathname.split("/unsubscribe/")[1];
+    const root = document.getElementById("root");
+
+    const render = (type, title, message) => {
+      root.className = "container " + type;
+      root.innerHTML =
+        '<div class="card">' +
+          '<div class="icon">' + (type === "success" ? "&#10003;" : "&#10007;") + '</div>' +
+          '<h1>' + title + '</h1>' +
+          '<p>' + message + '</p>' +
+          '<a href="/">Back to home</a>' +
+        '</div>';
+    };
+
+    fetch("/api/unsubscribe/" + token)
+      .then(async (res) => {
+        const data = await res.json();
+        if (res.ok) {
+          render("success", "Unsubscribed", "You will no longer receive notifications for this repository.");
+        } else {
+          render("error", "Unsubscribe Failed", data.message || "Something went wrong.");
+        }
+      })
+      .catch(() => {
+        render("error", "Network Error", "Could not reach the server. Please try again.");
+      });
+  </script>
+</body>
+</html>
