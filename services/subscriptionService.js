@@ -70,7 +70,7 @@ const createSubscriptionService = ({ subscriptionRepository, githubService, emai
       throw new ValidationError("Invalid email");
     }
 
-    return subscriptionRepository.findConfirmedByEmail(email);
+    return await subscriptionRepository.findConfirmedByEmail(email);
   };
 
   const listAllByEmail = async (email) => {
@@ -78,7 +78,7 @@ const createSubscriptionService = ({ subscriptionRepository, githubService, emai
       throw new ValidationError("Invalid email");
     }
 
-    return subscriptionRepository.findAllByEmail(email);
+    return await subscriptionRepository.findAllByEmail(email);
   };
 
   return { subscribe, confirm, unsubscribe, listByEmail, listAllByEmail };

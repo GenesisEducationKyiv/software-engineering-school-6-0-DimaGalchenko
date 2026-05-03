@@ -7,11 +7,13 @@ const createAuthMiddleware = (apiKey) => {
     const provided = req.headers["x-api-key"];
 
     if (!provided) {
-      return res.status(401).json({ message: "Missing API key" });
+      res.status(401).json({ message: "Missing API key" });
+      return;
     }
 
     if (provided !== apiKey) {
-      return res.status(401).json({ message: "Invalid API key" });
+      res.status(401).json({ message: "Invalid API key" });
+      return;
     }
 
     next();

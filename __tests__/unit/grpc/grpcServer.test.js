@@ -40,7 +40,10 @@ describe("gRPC Server", () => {
       `0.0.0.0:${port}`,
       grpc.ServerCredentials.createInsecure(),
       (err) => {
-        if (err) return done(err);
+        if (err) {
+          done(err);
+          return;
+        }
         client = loadClient(port);
         done();
       }

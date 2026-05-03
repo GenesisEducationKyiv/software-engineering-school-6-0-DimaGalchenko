@@ -111,10 +111,10 @@ describe("GithubService", () => {
       global.fetch.mockResolvedValue({
         status: 200,
         ok: true,
-        json: async () => [
+        json: () => Promise.resolve([
           { tag_name: "v2.0.0", html_url: "https://github.com/owner/repo/releases/tag/v2.0.0" },
           { tag_name: "v1.0.0", html_url: "https://github.com/owner/repo/releases/tag/v1.0.0" },
-        ],
+        ]),
       });
 
       const result = await service.fetchReleases("owner/repo");

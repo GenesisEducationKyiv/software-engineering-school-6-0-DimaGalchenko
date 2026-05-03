@@ -4,7 +4,7 @@ const createGithubService = ({ config, cacheService }) => {
   const buildHeaders = () => {
     const headers = { "Accept": "application/vnd.github.v3+json" };
     if (config.github.token) {
-      headers["Authorization"] = `Bearer ${config.github.token}`;
+      headers.Authorization = `Bearer ${config.github.token}`;
     }
     return headers;
   };

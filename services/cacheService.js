@@ -14,8 +14,8 @@ const createCacheService = (redisClient) => {
 };
 
 const createNullCacheService = () => ({
-  get: async () => null,
-  set: async () => {},
+  get: () => Promise.resolve(null),
+  set: () => Promise.resolve(),
 });
 
 module.exports = { createCacheService, createNullCacheService };
