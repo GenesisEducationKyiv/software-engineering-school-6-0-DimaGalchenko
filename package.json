@@ -7,7 +7,8 @@
     "test": "jest --verbose",
     "test:integration": "jest --testPathPatterns=integration --verbose",
     "test:coverage": "jest --coverage",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "prepare": "git config core.hooksPath .githooks"
   },
   "keywords": [],
   "author": "",

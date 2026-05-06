@@ -1,14 +1,15 @@
 const path = require("path");
 const grpc = require("@grpc/grpc-js");
 const protoLoader = require("@grpc/proto-loader");
+const { ValidationError, NotFoundError, ConflictError, RateLimitError } = require("../utils/errors");
 
 const PROTO_PATH = path.join(__dirname, "subscription.proto");
 
 const STATUS_MAP = {
-  ValidationError: grpc.status.INVALID_ARGUMENT,
-  NotFoundError: grpc.status.NOT_FOUND,
-  ConflictError: grpc.status.ALREADY_EXISTS,
-  RateLimitError: grpc.status.UNAVAILABLE,
+  [ValidationError.name]: grpc.status.INVALID_ARGUMENT,
+  [NotFoundError.name]: grpc.status.NOT_FOUND,
+  [ConflictError.name]: grpc.status.ALREADY_EXISTS,
+  [RateLimitError.name]: grpc.status.UNAVAILABLE,
 };
 
 const toGrpcError = (err) => {

@@ -10,7 +10,7 @@ const createGithubService = ({ config, cacheService }) => {
   };
 
   const handleRateLimit = (response) => {
-    if (response.status === 429) {
+    if (response.status === 429 || (response.status === 403 && response.headers.get("x-ratelimit-remaining") === "0")) {
       const retryAfter = parseInt(response.headers.get("retry-after"), 10) || 60;
       throw new RateLimitError(retryAfter);
     }
