@@ -11,10 +11,7 @@ const createCacheService = (redisClient) => {
   };
 
   const set = async (key, value, ttl = CACHE_TTL) => {
-    try {
-      await redisClient.set(key, JSON.stringify(value), "EX", ttl);
-    } catch (_err) {
-    }
+    await redisClient.set(key, JSON.stringify(value), "EX", ttl);
   };
 
   return { get, set };
