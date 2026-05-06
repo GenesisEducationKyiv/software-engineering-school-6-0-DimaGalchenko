@@ -79,10 +79,8 @@ const createGrpcServer = (subscriptionService) => {
   const start = (port) => {
     server.bindAsync(`0.0.0.0:${port}`, grpc.ServerCredentials.createInsecure(), (err) => {
       if (err) {
-        console.error("gRPC server failed to start:", err);
-        return;
+        throw err;
       }
-      console.log(`gRPC server is running on port ${port}`);
     });
   };
 
