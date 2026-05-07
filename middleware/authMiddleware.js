@@ -16,7 +16,10 @@ const createAuthMiddleware = (apiKey) => {
     const providedBuf = Buffer.from(provided);
     const expectedBuf = Buffer.from(apiKey);
 
-    if (providedBuf.length !== expectedBuf.length || !crypto.timingSafeEqual(providedBuf, expectedBuf)) {
+    if (
+      providedBuf.length !== expectedBuf.length ||
+      !crypto.timingSafeEqual(providedBuf, expectedBuf)
+    ) {
       res.status(401).json({ message: "Invalid API key" });
       return;
     }

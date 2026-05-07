@@ -37,7 +37,7 @@ const metricsMiddleware = (req, res, next) => {
       status_code: res.statusCode,
     };
     end(labels);
-  httpRequestsTotal.inc(labels);
+    httpRequestsTotal.inc(labels);
   });
 
   next();

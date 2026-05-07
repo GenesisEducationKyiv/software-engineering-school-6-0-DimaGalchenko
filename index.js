@@ -6,7 +6,10 @@ const pool = require("./db/pool");
 const runMigrations = require("./db/migrate");
 const createSubscriptionRepository = require("./repositories/subscriptionRepository");
 const createGithubService = require("./services/githubService");
-const { createCacheService, createNullCacheService } = require("./services/cacheService");
+const {
+  createCacheService,
+  createNullCacheService,
+} = require("./services/cacheService");
 const createEmailService = require("./services/emailService");
 const createNodemailerSender = require("./services/senders/nodemailerSender");
 const createResendSender = require("./services/senders/resendSender");

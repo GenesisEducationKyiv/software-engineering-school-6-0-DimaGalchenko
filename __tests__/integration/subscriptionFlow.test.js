@@ -1,5 +1,9 @@
 const request = require("supertest");
-const { startDatabase, stopDatabase, truncateAll } = require("./setup/testDatabase");
+const {
+  startDatabase,
+  stopDatabase,
+  truncateAll,
+} = require("./setup/testDatabase");
 const { buildApp } = require("./setup/testApp");
 const { NotFoundError } = require("../../utils/errors");
 
@@ -37,12 +41,12 @@ describe("Subscription Integration", () => {
       expect(res.status).toBe(200);
       expect(emailService.sendConfirmation).toHaveBeenCalledWith(
         "test@example.com",
-        expect.any(String)
+        expect.any(String),
       );
 
       const { rows } = await pool.query(
         "SELECT * FROM subscriptions WHERE email = $1 AND repo = $2",
-          ["test@example.com", "owner/repo"]
+        ["test@example.com", "owner/repo"],
       );
       expect(rows).toHaveLength(1);
       expect(rows[0].confirmed).toBe(false);
@@ -72,7 +76,7 @@ describe("Subscription Integration", () => {
 
     it("returns 404 when GitHub repo not found", async () => {
       githubService.validateRepository.mockRejectedValueOnce(
-        new NotFoundError("Repository not found on GitHub")
+        new NotFoundError("Repository not found on GitHub"),
       );
 
       const res = await request(app)
@@ -89,11 +93,11 @@ describe("Subscription Integration", () => {
 
       const { rows } = await pool.query(
         "SELECT confirm_token FROM subscriptions WHERE email = $1",
-        ["test@example.com"]
+        ["test@example.com"],
       );
       await pool.query(
         "UPDATE subscriptions SET confirmed = true WHERE confirm_token = $1",
-        [rows[0].confirm_token]
+        [rows[0].confirm_token],
       );
 
       const res = await request(app)
@@ -110,7 +114,7 @@ describe("Subscription Integration", () => {
 
       const { rows: before } = await pool.query(
         "SELECT confirm_token FROM subscriptions WHERE email = $1",
-        ["test@example.com"]
+        ["test@example.com"],
       );
       const originalToken = before[0].confirm_token;
 
@@ -123,12 +127,12 @@ describe("Subscription Integration", () => {
       expect(res.status).toBe(200);
       expect(emailService.sendConfirmation).toHaveBeenCalledWith(
         "test@example.com",
-        originalToken
+        originalToken,
       );
 
       const { rows: after } = await pool.query(
         "SELECT * FROM subscriptions WHERE email = $1",
-        ["test@example.com"]
+        ["test@example.com"],
       );
       expect(after).toHaveLength(1);
     });
@@ -142,7 +146,7 @@ describe("Subscription Integration", () => {
 
       const { rows } = await pool.query(
         "SELECT confirm_token FROM subscriptions WHERE email = $1",
-        ["test@example.com"]
+        ["test@example.com"],
       );
       const token = rows[0].confirm_token;
 
@@ -152,7 +156,7 @@ describe("Subscription Integration", () => {
 
       const { rows: updated } = await pool.query(
         "SELECT confirmed FROM subscriptions WHERE confirm_token = $1",
-        [token]
+        [token],
       );
       expect(updated[0].confirmed).toBe(true);
     });
@@ -172,7 +176,7 @@ describe("Subscription Integration", () => {
 
       const { rows } = await pool.query(
         "SELECT unsubscribe_token FROM subscriptions WHERE email = $1",
-        ["test@example.com"]
+        ["test@example.com"],
       );
       const token = rows[0].unsubscribe_token;
 
@@ -182,7 +186,7 @@ describe("Subscription Integration", () => {
 
       const { rows: remaining } = await pool.query(
         "SELECT * FROM subscriptions WHERE email = $1",
-        ["test@example.com"]
+        ["test@example.com"],
       );
       expect(remaining).toHaveLength(0);
     });
@@ -205,11 +209,11 @@ describe("Subscription Integration", () => {
 
       const { rows } = await pool.query(
         "SELECT confirm_token FROM subscriptions WHERE repo = $1",
-        ["owner/repo1"]
+        ["owner/repo1"],
       );
       await pool.query(
         "UPDATE subscriptions SET confirmed = true WHERE confirm_token = $1",
-        [rows[0].confirm_token]
+        [rows[0].confirm_token],
       );
 
       const res = await request(app)
@@ -248,9 +252,12 @@ describe("Subscription Integration", () => {
 
       const { rows } = await pool.query(
         "SELECT confirm_token, unsubscribe_token FROM subscriptions WHERE email = $1",
-        ["flow@example.com"]
+        ["flow@example.com"],
       );
-      const { confirm_token: confirmToken, unsubscribe_token: unsubscribeToken } = rows[0];
+      const {
+        confirm_token: confirmToken,
+        unsubscribe_token: unsubscribeToken,
+      } = rows[0];
 
       const pendingRes = await request(app)
         .get("/api/subscriptions")

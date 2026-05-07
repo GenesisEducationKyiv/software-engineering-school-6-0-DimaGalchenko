@@ -1,7 +1,11 @@
 const cron = require("node-cron");
 const { RateLimitError } = require("../utils/errors");
 
-const createScannerService = ({ subscriptionRepository, githubService, emailService }) => {
+const createScannerService = ({
+  subscriptionRepository,
+  githubService,
+  emailService,
+}) => {
   let task = null;
   let scanning = false;
 
@@ -11,7 +15,8 @@ const createScannerService = ({ subscriptionRepository, githubService, emailServ
     }
 
     const lastSeenIndex = releases.findIndex((r) => r.tagName === lastSeenTag);
-    const newReleases = lastSeenIndex === -1 ? releases : releases.slice(0, lastSeenIndex);
+    const newReleases =
+      lastSeenIndex === -1 ? releases : releases.slice(0, lastSeenIndex);
     return newReleases.reverse();
   };
 
@@ -34,15 +39,20 @@ const createScannerService = ({ subscriptionRepository, githubService, emailServ
             repo,
             release.tagName,
             release.htmlUrl,
-            subscriber.unsubscribe_token
+            subscriber.unsubscribe_token,
           );
         } catch (err) {
-          console.error(`Failed to notify ${subscriber.email} for ${repo}: ${err.message}`);
+          console.error(
+            `Failed to notify ${subscriber.email} for ${repo}: ${err.message}`,
+          );
         }
       }
 
       if (missed.length > 0) {
-        await subscriptionRepository.updateLastSeenTagById(subscriber.id, releases[0].tagName);
+        await subscriptionRepository.updateLastSeenTagById(
+          subscriber.id,
+          releases[0].tagName,
+        );
       }
     }
   };
@@ -62,7 +72,9 @@ const createScannerService = ({ subscriptionRepository, githubService, emailServ
           await processRepo(repo);
         } catch (err) {
           if (err instanceof RateLimitError) {
-            console.error(`Rate limited. Pausing scan. Retry after ${err.retryAfter}s`);
+            console.error(
+              `Rate limited. Pausing scan. Retry after ${err.retryAfter}s`,
+            );
             return;
           }
           console.error(`Error scanning ${repo}: ${err.message}`);
@@ -89,4 +101,3 @@ const createScannerService = ({ subscriptionRepository, githubService, emailServ
 };
 
 module.exports = createScannerService;
-

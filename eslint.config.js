@@ -17,12 +17,15 @@ module.exports = [
       },
     },
     rules: {
-      "no-unused-vars": ["error", { argsIgnorePattern: "^_", caughtErrorsIgnorePattern: "^_" }],
+      "no-unused-vars": [
+        "error",
+        { argsIgnorePattern: "^_", caughtErrorsIgnorePattern: "^_" },
+      ],
       "no-var": "error",
       "prefer-const": "error",
       "no-use-before-define": ["error", { functions: false }],
-      "eqeqeq": "error",
-      "curly": "error",
+      eqeqeq: "error",
+      curly: "error",
       "no-eval": "error",
       "no-implied-eval": "error",
       "no-throw-literal": "error",

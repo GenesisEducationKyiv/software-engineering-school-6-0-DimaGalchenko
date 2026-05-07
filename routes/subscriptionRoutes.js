@@ -6,7 +6,9 @@ const createSubscriptionRoutes = (subscriptionService) => {
   router.post("/subscribe", async (req, res) => {
     const { email, repo } = req.body;
     await subscriptionService.subscribe(email, repo);
-    res.status(200).json({ message: "Subscription successful. Confirmation email sent." });
+    res
+      .status(200)
+      .json({ message: "Subscription successful. Confirmation email sent." });
   });
 
   router.get("/confirm/:token", async (req, res) => {
@@ -20,7 +22,9 @@ const createSubscriptionRoutes = (subscriptionService) => {
   });
 
   router.get("/subscriptions", async (req, res) => {
-    const subscriptions = await subscriptionService.listByEmail(req.query.email);
+    const subscriptions = await subscriptionService.listByEmail(
+      req.query.email,
+    );
     res.status(200).json(subscriptions);
   });
 

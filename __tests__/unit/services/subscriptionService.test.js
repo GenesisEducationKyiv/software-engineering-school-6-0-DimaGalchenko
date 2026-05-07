@@ -1,5 +1,9 @@
 const createSubscriptionService = require("../../../services/subscriptionService");
-const { ValidationError, NotFoundError, ConflictError } = require("../../../utils/errors");
+const {
+  ValidationError,
+  NotFoundError,
+  ConflictError,
+} = require("../../../utils/errors");
 
 const createMockDependencies = () => ({
   subscriptionRepository: {
@@ -35,34 +39,43 @@ describe("SubscriptionService", () => {
 
       await service.subscribe("user@example.com", "owner/repo");
 
-      expect(deps.githubService.validateRepository).toHaveBeenCalledWith("owner/repo");
+      expect(deps.githubService.validateRepository).toHaveBeenCalledWith(
+        "owner/repo",
+      );
       expect(deps.subscriptionRepository.create).toHaveBeenCalledWith(
-        expect.objectContaining({ email: "user@example.com", repo: "owner/repo" })
+        expect.objectContaining({
+          email: "user@example.com",
+          repo: "owner/repo",
+        }),
       );
       expect(deps.emailService.sendConfirmation).toHaveBeenCalledWith(
         "user@example.com",
-        expect.any(String)
+        expect.any(String),
       );
     });
 
     it("throws ValidationError for invalid email", async () => {
-      await expect(service.subscribe("invalid", "owner/repo"))
-        .rejects.toThrow(ValidationError);
+      await expect(service.subscribe("invalid", "owner/repo")).rejects.toThrow(
+        ValidationError,
+      );
     });
 
     it("throws ValidationError for empty email", async () => {
-      await expect(service.subscribe("", "owner/repo"))
-        .rejects.toThrow(ValidationError);
+      await expect(service.subscribe("", "owner/repo")).rejects.toThrow(
+        ValidationError,
+      );
     });
 
     it("throws ValidationError for invalid repo format", async () => {
-      await expect(service.subscribe("user@example.com", "invalidrepo"))
-        .rejects.toThrow(ValidationError);
+      await expect(
+        service.subscribe("user@example.com", "invalidrepo"),
+      ).rejects.toThrow(ValidationError);
     });
 
     it("throws ValidationError for repo with multiple slashes", async () => {
-      await expect(service.subscribe("user@example.com", "a/b/c"))
-        .rejects.toThrow(ValidationError);
+      await expect(
+        service.subscribe("user@example.com", "a/b/c"),
+      ).rejects.toThrow(ValidationError);
     });
 
     it("throws ConflictError when already subscribed and confirmed", async () => {
@@ -71,8 +84,9 @@ describe("SubscriptionService", () => {
         confirm_token: "token-123",
       });
 
-      await expect(service.subscribe("user@example.com", "owner/repo"))
-        .rejects.toThrow(ConflictError);
+      await expect(
+        service.subscribe("user@example.com", "owner/repo"),
+      ).rejects.toThrow(ConflictError);
     });
 
     it("resends confirmation when subscription exists but not confirmed", async () => {
@@ -86,17 +100,18 @@ describe("SubscriptionService", () => {
       expect(deps.subscriptionRepository.create).not.toHaveBeenCalled();
       expect(deps.emailService.sendConfirmation).toHaveBeenCalledWith(
         "user@example.com",
-        "existing-token"
+        "existing-token",
       );
     });
 
     it("propagates NotFoundError from githubService", async () => {
       deps.githubService.validateRepository.mockRejectedValue(
-        new NotFoundError("Repository not found on GitHub")
+        new NotFoundError("Repository not found on GitHub"),
       );
 
-      await expect(service.subscribe("user@example.com", "owner/repo"))
-        .rejects.toThrow(NotFoundError);
+      await expect(
+        service.subscribe("user@example.com", "owner/repo"),
+      ).rejects.toThrow(NotFoundError);
     });
   });
 
@@ -109,50 +124,65 @@ describe("SubscriptionService", () => {
 
       await service.confirm("valid-token");
 
-      expect(deps.subscriptionRepository.confirmByToken).toHaveBeenCalledWith("valid-token");
+      expect(deps.subscriptionRepository.confirmByToken).toHaveBeenCalledWith(
+        "valid-token",
+      );
     });
 
     it("throws NotFoundError for unknown token", async () => {
       deps.subscriptionRepository.findByConfirmToken.mockResolvedValue(null);
 
-      await expect(service.confirm("unknown-token"))
-        .rejects.toThrow(NotFoundError);
+      await expect(service.confirm("unknown-token")).rejects.toThrow(
+        NotFoundError,
+      );
     });
 
     it("throws ValidationError for empty token", async () => {
-      await expect(service.confirm(""))
-        .rejects.toThrow(ValidationError);
+      await expect(service.confirm("")).rejects.toThrow(ValidationError);
     });
   });
 
   describe("unsubscribe", () => {
     it("deletes subscription by unsubscribe token", async () => {
-      deps.subscriptionRepository.findByUnsubscribeToken.mockResolvedValue({ id: 1 });
+      deps.subscriptionRepository.findByUnsubscribeToken.mockResolvedValue({
+        id: 1,
+      });
 
       await service.unsubscribe("valid-token");
 
-      expect(deps.subscriptionRepository.deleteByUnsubscribeToken).toHaveBeenCalledWith("valid-token");
+      expect(
+        deps.subscriptionRepository.deleteByUnsubscribeToken,
+      ).toHaveBeenCalledWith("valid-token");
     });
 
     it("throws NotFoundError for unknown token", async () => {
-      deps.subscriptionRepository.findByUnsubscribeToken.mockResolvedValue(null);
+      deps.subscriptionRepository.findByUnsubscribeToken.mockResolvedValue(
+        null,
+      );
 
-      await expect(service.unsubscribe("unknown-token"))
-        .rejects.toThrow(NotFoundError);
+      await expect(service.unsubscribe("unknown-token")).rejects.toThrow(
+        NotFoundError,
+      );
     });
 
     it("throws ValidationError for empty token", async () => {
-      await expect(service.unsubscribe(""))
-        .rejects.toThrow(ValidationError);
+      await expect(service.unsubscribe("")).rejects.toThrow(ValidationError);
     });
   });
 
   describe("listByEmail", () => {
     it("returns confirmed subscriptions for valid email", async () => {
       const subscriptions = [
-        { email: "user@example.com", repo: "owner/repo", confirmed: true, last_seen_tag: "v1.0" },
+        {
+          email: "user@example.com",
+          repo: "owner/repo",
+          confirmed: true,
+          last_seen_tag: "v1.0",
+        },
       ];
-      deps.subscriptionRepository.findConfirmedByEmail.mockResolvedValue(subscriptions);
+      deps.subscriptionRepository.findConfirmedByEmail.mockResolvedValue(
+        subscriptions,
+      );
 
       const result = await service.listByEmail("user@example.com");
 
@@ -168,8 +198,9 @@ describe("SubscriptionService", () => {
     });
 
     it("throws ValidationError for invalid email", async () => {
-      await expect(service.listByEmail("invalid"))
-        .rejects.toThrow(ValidationError);
+      await expect(service.listByEmail("invalid")).rejects.toThrow(
+        ValidationError,
+      );
     });
   });
 });

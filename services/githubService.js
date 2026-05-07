@@ -2,7 +2,7 @@ const { NotFoundError, RateLimitError } = require("../utils/errors");
 
 const createGithubService = ({ config, cacheService }) => {
   const buildHeaders = () => {
-    const headers = { "Accept": "application/vnd.github.v3+json" };
+    const headers = { Accept: "application/vnd.github.v3+json" };
     if (config.github.token) {
       headers.Authorization = `Bearer ${config.github.token}`;
     }
@@ -10,8 +10,13 @@ const createGithubService = ({ config, cacheService }) => {
   };
 
   const handleRateLimit = (response) => {
-    if (response.status === 429 || (response.status === 403 && response.headers.get("x-ratelimit-remaining") === "0")) {
-      const retryAfter = parseInt(response.headers.get("retry-after"), 10) || 60;
+    if (
+      response.status === 429 ||
+      (response.status === 403 &&
+        response.headers.get("x-ratelimit-remaining") === "0")
+    ) {
+      const retryAfter =
+        parseInt(response.headers.get("retry-after"), 10) || 60;
       throw new RateLimitError(retryAfter);
     }
   };
@@ -44,9 +49,12 @@ const createGithubService = ({ config, cacheService }) => {
   };
 
   const fetchReleases = async (repo) => {
-    const response = await fetch(`${config.github.apiBase}/repos/${repo}/releases?per_page=100`, {
-      headers: buildHeaders(),
-    });
+    const response = await fetch(
+      `${config.github.apiBase}/repos/${repo}/releases?per_page=100`,
+      {
+        headers: buildHeaders(),
+      },
+    );
 
     handleRateLimit(response);
 
@@ -59,7 +67,10 @@ const createGithubService = ({ config, cacheService }) => {
     }
 
     const data = await response.json();
-    return data.map((release) => ({ tagName: release.tag_name, htmlUrl: release.html_url }));
+    return data.map((release) => ({
+      tagName: release.tag_name,
+      htmlUrl: release.html_url,
+    }));
   };
 
   return { validateRepository, fetchReleases };

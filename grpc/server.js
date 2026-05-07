@@ -1,7 +1,12 @@
 const path = require("path");
 const grpc = require("@grpc/grpc-js");
 const protoLoader = require("@grpc/proto-loader");
-const { ValidationError, NotFoundError, ConflictError, RateLimitError } = require("../utils/errors");
+const {
+  ValidationError,
+  NotFoundError,
+  ConflictError,
+  RateLimitError,
+} = require("../utils/errors");
 
 const PROTO_PATH = path.join(__dirname, "subscription.proto");
 
@@ -31,8 +36,13 @@ const createGrpcServer = (subscriptionService) => {
   const handlers = {
     Subscribe: async (call, callback) => {
       try {
-        await subscriptionService.subscribe(call.request.email, call.request.repo);
-        callback(null, { message: "Subscription successful. Confirmation email sent." });
+        await subscriptionService.subscribe(
+          call.request.email,
+          call.request.repo,
+        );
+        callback(null, {
+          message: "Subscription successful. Confirmation email sent.",
+        });
       } catch (err) {
         callback(toGrpcError(err));
       }
@@ -58,7 +68,9 @@ const createGrpcServer = (subscriptionService) => {
 
     GetSubscriptions: async (call, callback) => {
       try {
-        const subscriptions = await subscriptionService.listByEmail(call.request.email);
+        const subscriptions = await subscriptionService.listByEmail(
+          call.request.email,
+        );
         callback(null, {
           subscriptions: subscriptions.map((sub) => ({
             email: sub.email,
@@ -77,11 +89,15 @@ const createGrpcServer = (subscriptionService) => {
   server.addService(proto.SubscriptionService.service, handlers);
 
   const start = (port) => {
-    server.bindAsync(`0.0.0.0:${port}`, grpc.ServerCredentials.createInsecure(), (err) => {
-      if (err) {
-        throw err;
-      }
-    });
+    server.bindAsync(
+      `0.0.0.0:${port}`,
+      grpc.ServerCredentials.createInsecure(),
+      (err) => {
+        if (err) {
+          throw err;
+        }
+      },
+    );
   };
 
   return { start, server };

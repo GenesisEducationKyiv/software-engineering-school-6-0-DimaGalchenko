@@ -1,4 +1,7 @@
-const { createCacheService, createNullCacheService } = require("../../../services/cacheService");
+const {
+  createCacheService,
+  createNullCacheService,
+} = require("../../../services/cacheService");
 
 const createMockRedis = () => ({
   get: jest.fn(),
@@ -41,7 +44,7 @@ describe("CacheService", () => {
         "test-key",
         JSON.stringify({ data: true }),
         "EX",
-        600
+        600,
       );
     });
 
@@ -52,7 +55,7 @@ describe("CacheService", () => {
         "test-key",
         JSON.stringify("value"),
         "EX",
-        120
+        120,
       );
     });
   });

@@ -31,4 +31,10 @@ class RateLimitError extends AppError {
   }
 }
 
-module.exports = { AppError, ValidationError, NotFoundError, ConflictError, RateLimitError };
+module.exports = {
+  AppError,
+  ValidationError,
+  NotFoundError,
+  ConflictError,
+  RateLimitError,
+};
