@@ -1,11 +1,13 @@
 const js = require("@eslint/js");
 const globals = require("globals");
+const eslintPluginPrettier = require("eslint-plugin-prettier/recommended");
 
 module.exports = [
   {
     ignores: ["node_modules/", "coverage/"],
   },
   js.configs.recommended,
+  eslintPluginPrettier,
   {
     languageOptions: {
       ecmaVersion: 2022,

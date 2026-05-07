@@ -8,7 +8,10 @@
     "test:integration": "jest --testPathPatterns=integration --verbose",
     "test:coverage": "jest --coverage",
     "lint": "eslint .",
-    "prepare": "git config core.hooksPath .githooks"
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.js": "eslint --fix"
   },
   "keywords": [],
   "author": "",
@@ -36,8 +39,13 @@
     "@eslint/js": "^10.0.1",
     "@testcontainers/postgresql": "^11.13.0",
     "eslint": "^10.1.0",
+    "eslint-config-prettier": "^10.1.0",
+    "eslint-plugin-prettier": "^5.4.0",
     "globals": "^17.5.0",
+    "husky": "^9.1.0",
     "jest": "^30.3.0",
+    "lint-staged": "^15.4.0",
+    "prettier": "^3.5.0",
     "supertest": "^7.2.2"
   }
 }
