@@ -8,6 +8,7 @@
     "test:integration": "jest --testPathPatterns=integration --verbose",
     "test:coverage": "jest --coverage",
     "lint": "eslint .",
+    "format:check": "prettier --check .",
     "prepare": "husky"
   },
   "lint-staged": {
