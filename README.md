@@ -157,5 +157,3 @@ npm run test:coverage
 - **Linting**: ESLint
 - **Testing**: Jest, Supertest, Testcontainers
 - **CI**: GitHub Actions (lint + tests)
-
-test
