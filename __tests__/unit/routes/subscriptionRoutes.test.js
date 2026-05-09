@@ -1,6 +1,10 @@
 const request = require("supertest");
 const createApp = require("../../../app");
-const { NotFoundError, ConflictError, ValidationError } = require("../../../utils/errors");
+const {
+  NotFoundError,
+  ConflictError,
+  ValidationError,
+} = require("../../../utils/errors");
 
 const createMockSubscriptionService = () => ({
   subscribe: jest.fn().mockResolvedValue(undefined),
@@ -26,11 +30,15 @@ describe("Subscription Routes", () => {
         .send({ email: "user@example.com", repo: "owner/repo" });
 
       expect(res.status).toBe(200);
-      expect(res.body.message).toBe("Subscription successful. Confirmation email sent.");
+      expect(res.body.message).toBe(
+        "Subscription successful. Confirmation email sent.",
+      );
     });
 
     it("returns 400 for invalid input", async () => {
-      mockService.subscribe.mockRejectedValue(new ValidationError("Invalid email address"));
+      mockService.subscribe.mockRejectedValue(
+        new ValidationError("Invalid email address"),
+      );
 
       const res = await request(app)
         .post("/api/subscribe")
@@ -40,7 +48,9 @@ describe("Subscription Routes", () => {
     });
 
     it("returns 404 when repo not found", async () => {
-      mockService.subscribe.mockRejectedValue(new NotFoundError("Repository not found on GitHub"));
+      mockService.subscribe.mockRejectedValue(
+        new NotFoundError("Repository not found on GitHub"),
+      );
 
       const res = await request(app)
         .post("/api/subscribe")
@@ -50,7 +60,9 @@ describe("Subscription Routes", () => {
     });
 
     it("returns 409 for duplicate subscription", async () => {
-      mockService.subscribe.mockRejectedValue(new ConflictError("Email already subscribed"));
+      mockService.subscribe.mockRejectedValue(
+        new ConflictError("Email already subscribed"),
+      );
 
       const res = await request(app)
         .post("/api/subscribe")
@@ -69,7 +81,9 @@ describe("Subscription Routes", () => {
     });
 
     it("returns 404 for unknown token", async () => {
-      mockService.confirm.mockRejectedValue(new NotFoundError("Token not found"));
+      mockService.confirm.mockRejectedValue(
+        new NotFoundError("Token not found"),
+      );
 
       const res = await request(app).get("/api/confirm/unknown-token");
 
@@ -86,7 +100,9 @@ describe("Subscription Routes", () => {
     });
 
     it("returns 404 for unknown token", async () => {
-      mockService.unsubscribe.mockRejectedValue(new NotFoundError("Token not found"));
+      mockService.unsubscribe.mockRejectedValue(
+        new NotFoundError("Token not found"),
+      );
 
       const res = await request(app).get("/api/unsubscribe/unknown-token");
 
@@ -97,18 +113,27 @@ describe("Subscription Routes", () => {
   describe("GET /api/subscriptions", () => {
     it("returns 200 with subscriptions array", async () => {
       const subscriptions = [
-        { email: "user@example.com", repo: "owner/repo", confirmed: true, last_seen_tag: "v1.0" },
+        {
+          email: "user@example.com",
+          repo: "owner/repo",
+          confirmed: true,
+          last_seen_tag: "v1.0",
+        },
       ];
       mockService.listByEmail.mockResolvedValue(subscriptions);
 
-      const res = await request(app).get("/api/subscriptions?email=user@example.com");
+      const res = await request(app).get(
+        "/api/subscriptions?email=user@example.com",
+      );
 
       expect(res.status).toBe(200);
       expect(res.body).toEqual(subscriptions);
     });
 
     it("returns 400 for invalid email", async () => {
-      mockService.listByEmail.mockRejectedValue(new ValidationError("Invalid email"));
+      mockService.listByEmail.mockRejectedValue(
+        new ValidationError("Invalid email"),
+      );
 
       const res = await request(app).get("/api/subscriptions?email=invalid");
 

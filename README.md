@@ -64,28 +64,28 @@ npm start
 
 ## Environment Variables
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `PORT` | Server port | `3000` |
-| `DATABASE_URL` | PostgreSQL connection string | `postgres://postgres:postgres@localhost:5432/release_notifier` |
-| `BASE_URL` | Public URL for email links | `http://localhost:3000` |
-| `GITHUB_TOKEN` | GitHub personal access token (optional, increases rate limit from 60 to 5000 req/hr) | — |
-| `EMAIL_USER` | Gmail address for sending emails | — |
-| `EMAIL_PASS` | Gmail app password | — |
-| `SCAN_CRON` | Cron expression for release scanning | `*/1 * * * *` (every minute) |
-| `REDIS_URL` | Redis connection URL for caching GitHub API responses (TTL 10 min) | `redis://localhost:6379` |
-| `API_KEY` | API key for endpoint authentication (empty = auth disabled) | — |
-| `GRPC_PORT` | Port for gRPC server | `50051` |
+| Variable       | Description                                                                          | Default                                                        |
+| -------------- | ------------------------------------------------------------------------------------ | -------------------------------------------------------------- |
+| `PORT`         | Server port                                                                          | `3000`                                                         |
+| `DATABASE_URL` | PostgreSQL connection string                                                         | `postgres://postgres:postgres@localhost:5432/release_notifier` |
+| `BASE_URL`     | Public URL for email links                                                           | `http://localhost:3000`                                        |
+| `GITHUB_TOKEN` | GitHub personal access token (optional, increases rate limit from 60 to 5000 req/hr) | —                                                              |
+| `EMAIL_USER`   | Gmail address for sending emails                                                     | —                                                              |
+| `EMAIL_PASS`   | Gmail app password                                                                   | —                                                              |
+| `SCAN_CRON`    | Cron expression for release scanning                                                 | `*/1 * * * *` (every minute)                                   |
+| `REDIS_URL`    | Redis connection URL for caching GitHub API responses (TTL 10 min)                   | `redis://localhost:6379`                                       |
+| `API_KEY`      | API key for endpoint authentication (empty = auth disabled)                          | —                                                              |
+| `GRPC_PORT`    | Port for gRPC server                                                                 | `50051`                                                        |
 
 ## API Endpoints
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/subscribe` | Subscribe an email to a GitHub repo's releases |
-| GET | `/api/confirm/:token` | Confirm subscription via email token |
-| GET | `/api/unsubscribe/:token` | Unsubscribe via email token |
-| GET | `/api/subscriptions?email=` | List active subscriptions for an email |
-| GET | `/metrics` | Prometheus metrics |
+| Method | Endpoint                    | Description                                    |
+| ------ | --------------------------- | ---------------------------------------------- |
+| POST   | `/api/subscribe`            | Subscribe an email to a GitHub repo's releases |
+| GET    | `/api/confirm/:token`       | Confirm subscription via email token           |
+| GET    | `/api/unsubscribe/:token`   | Unsubscribe via email token                    |
+| GET    | `/api/subscriptions?email=` | List active subscriptions for an email         |
+| GET    | `/metrics`                  | Prometheus metrics                             |
 
 Full API documentation: see `swagger.yaml` (viewable at https://editor.swagger.io/)
 
@@ -94,12 +94,14 @@ Full API documentation: see `swagger.yaml` (viewable at https://editor.swagger.i
 A gRPC server runs alongside the REST API on port 50051 (configurable via `GRPC_PORT`). The proto definition is at `grpc/subscription.proto`.
 
 Available RPCs:
+
 - `Subscribe(email, repo)` — subscribe to release notifications
 - `Confirm(token)` — confirm subscription
 - `Unsubscribe(token)` — unsubscribe
 - `GetSubscriptions(email)` — list active subscriptions
 
 Example with grpcurl:
+
 ```bash
 grpcurl -plaintext -d '{"email":"user@example.com","repo":"golang/go"}' localhost:50051 subscription.SubscriptionService/Subscribe
 ```

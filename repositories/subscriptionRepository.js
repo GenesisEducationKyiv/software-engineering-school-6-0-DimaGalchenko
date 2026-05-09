@@ -2,7 +2,7 @@ const createSubscriptionRepository = (pool) => {
   const findByEmailAndRepo = async (email, repo) => {
     const result = await pool.query(
       "SELECT * FROM subscriptions WHERE email = $1 AND repo = $2",
-      [email, repo]
+      [email, repo],
     );
     return result.rows[0] || null;
   };
@@ -12,7 +12,7 @@ const createSubscriptionRepository = (pool) => {
       `INSERT INTO subscriptions (email, repo, confirm_token, unsubscribe_token)
        VALUES ($1, $2, $3, $4)
        RETURNING *`,
-      [email, repo, confirmToken, unsubscribeToken]
+      [email, repo, confirmToken, unsubscribeToken],
     );
     return result.rows[0];
   };
@@ -20,7 +20,7 @@ const createSubscriptionRepository = (pool) => {
   const findByConfirmToken = async (token) => {
     const result = await pool.query(
       "SELECT * FROM subscriptions WHERE confirm_token = $1",
-      [token]
+      [token],
     );
     return result.rows[0] || null;
   };
@@ -28,7 +28,7 @@ const createSubscriptionRepository = (pool) => {
   const findByUnsubscribeToken = async (token) => {
     const result = await pool.query(
       "SELECT * FROM subscriptions WHERE unsubscribe_token = $1",
-      [token]
+      [token],
     );
     return result.rows[0] || null;
   };
@@ -36,21 +36,20 @@ const createSubscriptionRepository = (pool) => {
   const confirmByToken = async (token) => {
     await pool.query(
       "UPDATE subscriptions SET confirmed = true WHERE confirm_token = $1",
-      [token]
+      [token],
     );
   };
 
   const deleteByUnsubscribeToken = async (token) => {
-    await pool.query(
-      "DELETE FROM subscriptions WHERE unsubscribe_token = $1",
-      [token]
-    );
+    await pool.query("DELETE FROM subscriptions WHERE unsubscribe_token = $1", [
+      token,
+    ]);
   };
 
   const findConfirmedByEmail = async (email) => {
     const result = await pool.query(
       "SELECT email, repo, confirmed, last_seen_tag FROM subscriptions WHERE email = $1 AND confirmed = true",
-      [email]
+      [email],
     );
     return result.rows;
   };
@@ -58,14 +57,14 @@ const createSubscriptionRepository = (pool) => {
   const findAllByEmail = async (email) => {
     const result = await pool.query(
       "SELECT email, repo, confirmed, last_seen_tag FROM subscriptions WHERE email = $1",
-      [email]
+      [email],
     );
     return result.rows;
   };
 
   const findDistinctConfirmedRepos = async () => {
     const result = await pool.query(
-      "SELECT DISTINCT repo FROM subscriptions WHERE confirmed = true"
+      "SELECT DISTINCT repo FROM subscriptions WHERE confirmed = true",
     );
     return result.rows.map((row) => row.repo);
   };
@@ -73,7 +72,7 @@ const createSubscriptionRepository = (pool) => {
   const findConfirmedByRepo = async (repo) => {
     const result = await pool.query(
       "SELECT * FROM subscriptions WHERE repo = $1 AND confirmed = true",
-      [repo]
+      [repo],
     );
     return result.rows;
   };
@@ -81,14 +80,14 @@ const createSubscriptionRepository = (pool) => {
   const updateLastSeenTag = async (repo, tag) => {
     await pool.query(
       "UPDATE subscriptions SET last_seen_tag = $1 WHERE repo = $2 AND confirmed = true",
-      [tag, repo]
+      [tag, repo],
     );
   };
 
   const updateLastSeenTagById = async (id, tag) => {
     await pool.query(
       "UPDATE subscriptions SET last_seen_tag = $1 WHERE id = $2",
-      [tag, id]
+      [tag, id],
     );
   };
 

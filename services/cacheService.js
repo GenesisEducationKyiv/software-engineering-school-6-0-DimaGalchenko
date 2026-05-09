@@ -1,9 +1,13 @@
-const CACHE_TTL = 600;
+const CACHE_TTL = parseInt(process.env.CACHE_TTL, 10) || 600;
 
 const createCacheService = (redisClient) => {
   const get = async (key) => {
-    const data = await redisClient.get(key);
-    return data ? JSON.parse(data) : null;
+    try {
+      const data = await redisClient.get(key);
+      return data ? JSON.parse(data) : null;
+    } catch (_err) {
+      return null;
+    }
   };
 
   const set = async (key, value, ttl = CACHE_TTL) => {
@@ -14,8 +18,8 @@ const createCacheService = (redisClient) => {
 };
 
 const createNullCacheService = () => ({
-  get: async () => null,
-  set: async () => {},
+  get: () => Promise.resolve(null),
+  set: () => Promise.resolve(),
 });
 
 module.exports = { createCacheService, createNullCacheService };
