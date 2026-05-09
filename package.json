@@ -12,7 +12,8 @@
     "prepare": "husky"
   },
   "lint-staged": {
-    "*.js": "eslint --fix"
+    "*.js": "eslint --fix",
+    "*.{js,json,yml,yaml,html,md}": "prettier --write"
   },
   "keywords": [],
   "author": "",
