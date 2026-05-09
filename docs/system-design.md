@@ -20,17 +20,15 @@ Manually checking GitHub is tedious and error-prone.
 - **FR-3:** A user can unsubscribe through a unique link included in every notification email.
 - **FR-4:** The system periodically checks for new releases on a configurable schedule (cron).
 - **FR-5:** The system sends an email notification for every new release detected.
-- **FR-6:** The API is accessible via both REST and gRPC.
-- **FR-7:** A user can view the list of their active subscriptions.
+- **FR-6:** The API is accessible via REST.
+- **FR-7:** A user can view the list of active subscriptions.
 
 ### 2.2 Non-Functional Requirements
 
-- **NFR-1 Availability:** The service should be available 24/7 (Render.com with auto-restart).
+- **NFR-1 Availability:** The service should be available 24/7.
 - **NFR-2 Latency:** API responses for CRUD operations should be < 500 ms.
 - **NFR-3 Scalability:** Support thousands of subscriptions while respecting GitHub API rate limits (caching via Redis).
-- **NFR-4 Observability:** Prometheus metrics for monitoring HTTP request latency, throughput, and process health.
-- **NFR-5 Security:** Optional API Key authentication; token-based email confirmation and unsubscribe flows.
-- **NFR-6 Testability:** Dependency injection architecture allows easy mocking in unit/integration tests.
+- **NFR-4 Security:** Optional API Key authentication; token-based email confirmation and unsubscribe flows.
 
 ### 2.3 Constraints
 
@@ -45,38 +43,38 @@ Manually checking GitHub is tedious and error-prone.
 
 ### 3.1 Users & Traffic
 
-| Parameter | Estimate |
-|-----------|----------|
-| Total subscribers | ~1,000 |
-| Unique repos tracked | ~200 |
-| New subscriptions per day | ~20 |
-| Confirm/unsubscribe actions per day | ~20 |
-| API requests per day (subscribe + list) | ~100 |
+| Parameter                               | Estimate |
+| --------------------------------------- | -------- |
+| Total subscribers                       | ~1,000   |
+| Unique repos tracked                    | ~200     |
+| New subscriptions per day               | ~20      |
+| Confirm/unsubscribe actions per day     | ~20      |
+| API requests per day (subscribe + list) | ~100     |
 
 ### 3.2 Scanner Load
 
-| Parameter | Estimate |
-|-----------|----------|
-| Scan interval | 1 minute (configurable) |
-| GitHub API calls per scan | 1 per unique repo = ~200 |
-| Scans per hour | 60 |
-| GitHub API calls per hour | ~12,000 (exceeds unauthenticated limit; token required) |
-| Emails per day (avg 2 releases/repo/week) | ~60 |
+| Parameter                                 | Estimate                                                |
+| ----------------------------------------- | ------------------------------------------------------- |
+| Scan interval                             | 1 minute (configurable)                                 |
+| GitHub API calls per scan                 | 1 per unique repo = ~200                                |
+| Scans per hour                            | 60                                                      |
+| GitHub API calls per hour                 | ~12,000 (exceeds unauthenticated limit; token required) |
+| Emails per day (avg 2 releases/repo/week) | ~60                                                     |
 
 ### 3.3 Data Sizes
 
-| Entity | Avg row size | Total rows | Total size |
-|--------|-------------|------------|------------|
-| Subscription | ~500 B | 1,000 | ~500 KB |
-| Redis cache entries | ~200 B per key | 200 | ~40 KB |
+| Entity              | Avg row size   | Total rows | Total size |
+| ------------------- | -------------- | ---------- | ---------- |
+| Subscription        | ~500 B         | 1,000      | ~500 KB    |
+| Redis cache entries | ~200 B per key | 200        | ~40 KB     |
 
 ### 3.4 Bandwidth
 
-| Traffic type | Per request | Daily volume | Daily bandwidth |
-|--------------|------------|--------------|-----------------|
-| API request/response | ~1 KB | 100 | ~100 KB |
-| GitHub API response (releases) | ~50 KB | 12,000 | ~600 MB |
-| Outbound emails | ~5 KB | 60 | ~300 KB |
+| Traffic type                   | Per request | Daily volume | Daily bandwidth |
+| ------------------------------ | ----------- | ------------ | --------------- |
+| API request/response           | ~1 KB       | 100          | ~100 KB         |
+| GitHub API response (releases) | ~50 KB      | 12,000       | ~600 MB         |
+| Outbound emails                | ~5 KB       | 60           | ~300 KB         |
 
 ---
 
@@ -142,23 +140,23 @@ graph TB
 
 #### REST Endpoints (Express.js, port 3000)
 
-| Method | Endpoint | Description | Auth | Request Body | Success Response |
-|--------|----------|-------------|------|--------------|-----------------|
-| POST | `/api/subscribe` | Subscribe to a repository | API Key (optional) | `{email, repo}` | `200 {message}` |
-| GET | `/api/confirm/:token` | Confirm subscription |  - |  - | `200 {message}` |
-| GET | `/api/unsubscribe/:token` | Unsubscribe |  - |  - | `200 {message}` |
-| GET | `/api/subscriptions?email=` | List subscriptions | API Key (optional) |  - | `200 [{email, repo, confirmed, last_seen_tag}]` |
-| GET | `/metrics` | Prometheus metrics |  - |  - | `200 text/plain` |
-| GET | `/` | HTML subscription form |  - |  - | `200 text/html` |
+| Method | Endpoint                    | Description               | Auth               | Request Body    | Success Response                                |
+| ------ | --------------------------- | ------------------------- | ------------------ | --------------- | ----------------------------------------------- |
+| POST   | `/api/subscribe`            | Subscribe to a repository | API Key (optional) | `{email, repo}` | `200 {message}`                                 |
+| GET    | `/api/confirm/:token`       | Confirm subscription      | -                  | -               | `200 {message}`                                 |
+| GET    | `/api/unsubscribe/:token`   | Unsubscribe               | -                  | -               | `200 {message}`                                 |
+| GET    | `/api/subscriptions?email=` | List subscriptions        | API Key (optional) | -               | `200 [{email, repo, confirmed, last_seen_tag}]` |
+| GET    | `/metrics`                  | Prometheus metrics        | -                  | -               | `200 text/plain`                                |
+| GET    | `/`                         | HTML subscription form    | -                  | -               | `200 text/html`                                 |
 
 #### Error Responses
 
-| Status | Error Class | When |
-|--------|------------|------|
-| 400 | `ValidationError` | Invalid email or repo format |
-| 404 | `NotFoundError` | Repo doesn't exist or invalid token |
-| 409 | `ConflictError` | Duplicate confirmed subscription |
-| 503 | `RateLimitError` | GitHub API rate limit exceeded |
+| Status | Error Class       | When                                |
+| ------ | ----------------- | ----------------------------------- |
+| 400    | `ValidationError` | Invalid email or repo format        |
+| 404    | `NotFoundError`   | Repo doesn't exist or invalid token |
+| 409    | `ConflictError`   | Duplicate confirmed subscription    |
+| 503    | `RateLimitError`  | GitHub API rate limit exceeded      |
 
 #### gRPC Endpoints (port 50051)
 
@@ -173,26 +171,26 @@ service SubscriptionService {
 
 ### 5.2 Service Layer
 
-| Service | Responsibility |
-|---------|---------------|
-| **SubscriptionService** | Business logic: validate inputs, create subscriptions with tokens, confirm, unsubscribe, list. Sends confirmation email on subscribe. |
-| **ScannerService** | Cron job: fetches distinct repos, calls GitHub API for releases, compares against `last_seen_tag`, sends notification emails, updates tag. |
-| **GithubService** | Validates repo existence (cached), fetches up to 100 releases per repo. Adds `Authorization` header if `GITHUB_TOKEN` is set. |
-| **EmailService** | Renders and sends HTML emails via Nodemailer (Gmail SMTP) or Resend API. Two templates: confirmation and release notification. |
-| **CacheService** | Redis wrapper with `get/set` and configurable TTL. Falls back to `NullCacheService` (no-op) if Redis is unavailable. |
-| **TokenService** | Generates UUIDs via `crypto.randomUUID()` for confirm and unsubscribe tokens. |
+| Service                 | Responsibility                                                                                                                             |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| **SubscriptionService** | Business logic: validate inputs, create subscriptions with tokens, confirm, unsubscribe, list. Sends confirmation email on subscribe.      |
+| **ScannerService**      | Cron job: fetches distinct repos, calls GitHub API for releases, compares against `last_seen_tag`, sends notification emails, updates tag. |
+| **GithubService**       | Validates repo existence (cached), fetches up to 100 releases per repo. Adds `Authorization` header if `GITHUB_TOKEN` is set.              |
+| **EmailService**        | Renders and sends HTML emails via Nodemailer (Gmail SMTP) or Resend API. Two templates: confirmation and release notification.             |
+| **CacheService**        | Redis wrapper with `get/set` and configurable TTL. Falls back to `NullCacheService` (no-op) if Redis is unavailable.                       |
+| **TokenService**        | Generates UUIDs via `crypto.randomUUID()` for confirm and unsubscribe tokens.                                                              |
 
 ### 5.3 Repository Layer
 
 **SubscriptionRepository** wraps all SQL queries against the `subscriptions` table using the `pg` connection pool. Key queries:
 
-- `findByEmailAndRepo(email, repo)`  - duplicate check
-- `create(email, repo, confirmToken, unsubscribeToken)`  - INSERT
-- `findByConfirmToken(token)` / `confirm(id)`  - confirmation flow
-- `findByUnsubscribeToken(token)` / `deleteById(id)`  - unsubscribe flow
-- `findDistinctRepos()`  - scanner: all repos with confirmed subs
-- `findConfirmedByRepo(repo)`  - scanner: subscribers per repo
-- `updateLastSeenTag(id, tag)`  - after notification
+- `findByEmailAndRepo(email, repo)` - duplicate check
+- `create(email, repo, confirmToken, unsubscribeToken)` - INSERT
+- `findByConfirmToken(token)` / `confirm(id)` - confirmation flow
+- `findByUnsubscribeToken(token)` / `deleteById(id)` - unsubscribe flow
+- `findDistinctRepos()` - scanner: all repos with confirmed subs
+- `findConfirmedByRepo(repo)` - scanner: subscribers per repo
+- `updateLastSeenTag(id, tag)` - after notification
 
 ---
 
@@ -200,23 +198,25 @@ service SubscriptionService {
 
 ### `subscriptions` Table
 
-| Column | Type | Constraints | Description |
-|--------|------|-------------|-------------|
-| `id` | SERIAL | PRIMARY KEY | Auto-incrementing ID |
-| `email` | VARCHAR(255) | NOT NULL | Subscriber's email |
-| `repo` | VARCHAR(255) | NOT NULL | GitHub repository (`owner/repo`) |
-| `confirmed` | BOOLEAN | NOT NULL, DEFAULT false | Whether subscription is confirmed |
-| `last_seen_tag` | VARCHAR(255) | NULLABLE | Last release tag the subscriber was notified about |
-| `confirm_token` | VARCHAR(255) | NOT NULL, UNIQUE | UUID for email confirmation |
-| `unsubscribe_token` | VARCHAR(255) | NOT NULL, UNIQUE | UUID for unsubscribe link |
-| `created_at` | TIMESTAMPTZ | NOT NULL, DEFAULT NOW() | Creation timestamp |
+| Column              | Type         | Constraints             | Description                                        |
+| ------------------- | ------------ | ----------------------- | -------------------------------------------------- |
+| `id`                | SERIAL       | PRIMARY KEY             | Auto-incrementing ID                               |
+| `email`             | VARCHAR(255) | NOT NULL                | Subscriber's email                                 |
+| `repo`              | VARCHAR(255) | NOT NULL                | GitHub repository (`owner/repo`)                   |
+| `confirmed`         | BOOLEAN      | NOT NULL, DEFAULT false | Whether subscription is confirmed                  |
+| `last_seen_tag`     | VARCHAR(255) | NULLABLE                | Last release tag the subscriber was notified about |
+| `confirm_token`     | VARCHAR(255) | NOT NULL, UNIQUE        | UUID for email confirmation                        |
+| `unsubscribe_token` | VARCHAR(255) | NOT NULL, UNIQUE        | UUID for unsubscribe link                          |
+| `created_at`        | TIMESTAMPTZ  | NOT NULL, DEFAULT NOW() | Creation timestamp                                 |
 
 **Constraints:**
-- `UNIQUE(email, repo)`  - one subscription per email per repo
+
+- `UNIQUE(email, repo)` - one subscription per email per repo
 
 **Indexes:**
-- `idx_subscriptions_email`  - fast lookup by email
-- `idx_subscriptions_confirmed_repo`  - optimizes scanner queries (confirmed subscriptions per repo)
+
+- `idx_subscriptions_email` - fast lookup by email
+- `idx_subscriptions_confirmed_repo` - optimizes scanner queries (confirmed subscriptions per repo)
 
 ---
 
@@ -346,11 +346,11 @@ A centralized error handler middleware catches all errors and returns appropriat
 
 ### Prometheus Metrics
 
-| Metric | Type | Labels | Description |
-|--------|------|--------|-------------|
-| `http_request_duration_seconds` | Histogram | method, route, status_code | HTTP request latency |
-| `http_requests_total` | Counter | method, route, status_code | Total HTTP request count |
-| Default process metrics | Various |  - | CPU, memory, event loop |
+| Metric                          | Type      | Labels                     | Description              |
+| ------------------------------- | --------- | -------------------------- | ------------------------ |
+| `http_request_duration_seconds` | Histogram | method, route, status_code | HTTP request latency     |
+| `http_requests_total`           | Counter   | method, route, status_code | Total HTTP request count |
+| Default process metrics         | Various   | -                          | CPU, memory, event loop  |
 
 - **Endpoint:** `GET /metrics`
 - **Histogram buckets:** [0.01, 0.05, 0.1, 0.3, 0.5, 1, 2, 5] seconds
@@ -359,13 +359,13 @@ A centralized error handler middleware catches all errors and returns appropriat
 
 ## 11. Security
 
-| Measure | Description |
-|---------|-------------|
-| API Key authentication | Optional `x-api-key` header; disabled when `API_KEY` env var is empty |
-| Token-based email flows | `crypto.randomUUID()` tokens for confirm/unsubscribe prevent CSRF |
-| Input validation | Regex validation for email (`^[^\s@]+@[^\s@]+\.[^\s@]+$`) and repo format (`^[a-zA-Z0-9._-]+\/[a-zA-Z0-9._-]+$`) |
-| Database constraints | `UNIQUE(email, repo)` prevents duplicate subscriptions at the DB level |
-| gRPC | Currently plaintext (no TLS); requires TLS configuration for production |
+| Measure                 | Description                                                                                                      |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| API Key authentication  | Optional `x-api-key` header; disabled when `API_KEY` env var is empty                                            |
+| Token-based email flows | `crypto.randomUUID()` tokens for confirm/unsubscribe prevent CSRF                                                |
+| Input validation        | Regex validation for email (`^[^\s@]+@[^\s@]+\.[^\s@]+$`) and repo format (`^[a-zA-Z0-9._-]+\/[a-zA-Z0-9._-]+$`) |
+| Database constraints    | `UNIQUE(email, repo)` prevents duplicate subscriptions at the DB level                                           |
+| gRPC                    | Currently plaintext (no TLS); requires TLS configuration for production                                          |
 
 ---
 
@@ -395,19 +395,19 @@ graph TB
 
 ## 13. Technology Stack
 
-| Layer | Technology | Purpose |
-|-------|-----------|---------|
-| Runtime | Node.js 20 | Server runtime |
-| REST API | Express.js 5 | HTTP endpoints |
-| gRPC | @grpc/grpc-js | RPC endpoints |
-| Database | PostgreSQL 16 | Persistent storage |
-| Cache | Redis 7 (ioredis) | GitHub API response caching |
-| Email | Nodemailer / Resend | Email delivery |
-| Scheduler | node-cron | Background release scanning |
-| Metrics | prom-client | Prometheus observability |
-| Testing | Jest + Supertest + Testcontainers | Automated testing |
-| Container | Docker + Docker Compose | Deployment packaging |
-| Hosting | Render.com | Cloud deployment |
+| Layer     | Technology                        | Purpose                     |
+| --------- | --------------------------------- | --------------------------- |
+| Runtime   | Node.js 20                        | Server runtime              |
+| REST API  | Express.js 5                      | HTTP endpoints              |
+| gRPC      | @grpc/grpc-js                     | RPC endpoints               |
+| Database  | PostgreSQL 16                     | Persistent storage          |
+| Cache     | Redis 7 (ioredis)                 | GitHub API response caching |
+| Email     | Nodemailer / Resend               | Email delivery              |
+| Scheduler | node-cron                         | Background release scanning |
+| Metrics   | prom-client                       | Prometheus observability    |
+| Testing   | Jest + Supertest + Testcontainers | Automated testing           |
+| Container | Docker + Docker Compose           | Deployment packaging        |
+| Hosting   | Render.com                        | Cloud deployment            |
 
 ---
 
@@ -416,24 +416,24 @@ graph TB
 ### How to test it works now
 
 1. **Functional testing:**
-   - `POST /api/subscribe` with a valid email and public repo (e.g., `facebook/react`)  - should return 200 and send a confirmation email.
-   - Click the confirm link  - subscription becomes active.
-   - Wait for the next scanner cycle  - if a release exists, a notification email is sent.
-   - Click unsubscribe  - subscription is removed.
+   - `POST /api/subscribe` with a valid email and public repo (e.g., `facebook/react`) - should return 200 and send a confirmation email.
+   - Click the confirm link - subscription becomes active.
+   - Wait for the next scanner cycle - if a release exists, a notification email is sent.
+   - Click unsubscribe - subscription is removed.
 
 2. **Automated tests:**
-   - `npm test`  - unit tests with mocked dependencies.
-   - `npm run test:integration`  - integration tests with real PostgreSQL via Testcontainers.
+   - `npm test` - unit tests with mocked dependencies.
+   - `npm run test:integration` - integration tests with real PostgreSQL via Testcontainers.
 
 3. **Metrics verification:**
-   - `GET /metrics`  - confirm Prometheus metrics are being collected.
+   - `GET /metrics` - confirm Prometheus metrics are being collected.
    - Verify `http_requests_total` increments after API calls.
 
 ### How to ensure it works in 3 months
 
 1. **Uptime monitoring:** Configure an external health check (e.g., UptimeRobot) to periodically hit `GET /` and alert on failures.
 2. **Prometheus + Grafana:** Set up dashboards for `http_request_duration_seconds` and `http_requests_total` to detect latency regressions or traffic anomalies.
-3. **Scanner health logging:** The scanner logs each scan cycle. Monitor logs for `RateLimitError` frequency  - indicates approaching GitHub API limits.
+3. **Scanner health logging:** The scanner logs each scan cycle. Monitor logs for `RateLimitError` frequency - indicates approaching GitHub API limits.
 4. **Dependency updates:** Regularly update Node.js and npm dependencies (`npm audit`) to patch security vulnerabilities.
 5. **Email delivery monitoring:** Track email bounce rates via Resend dashboard or Gmail SMTP logs. Rising bounces indicate deliverability issues.
 6. **Database growth:** Monitor `subscriptions` table size. With current estimates (~1,000 rows), PostgreSQL will handle this for years without concern.
