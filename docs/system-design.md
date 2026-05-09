@@ -369,31 +369,7 @@ A centralized error handler middleware catches all errors and returns appropriat
 
 ---
 
-## 12. Deployment
-
-```mermaid
-graph TB
-    subgraph Render["Render.com"]
-        subgraph Container["Docker Container (node:20-alpine)"]
-            Express["Express :3000"]
-            GRPC["gRPC :50051"]
-            Cron["Scanner Cron"]
-        end
-        PG["PostgreSQL 16"]
-        Redis["Redis 7"]
-    end
-
-    Container --> PG
-    Container --> Redis
-```
-
-- **Local development:** `docker-compose up` starts the app, PostgreSQL, and Redis.
-- **Production:** Docker container on Render.com with managed PostgreSQL and Redis.
-- **Startup sequence:** Load env vars -> Run migrations -> Initialize DI -> Start Express + gRPC + Scanner.
-
----
-
-## 13. Technology Stack
+## 12. Technology Stack
 
 | Layer     | Technology                        | Purpose                     |
 | --------- | --------------------------------- | --------------------------- |
@@ -411,36 +387,7 @@ graph TB
 
 ---
 
-## 14. Verification
-
-### How to test it works now
-
-1. **Functional testing:**
-   - `POST /api/subscribe` with a valid email and public repo (e.g., `facebook/react`) - should return 200 and send a confirmation email.
-   - Click the confirm link - subscription becomes active.
-   - Wait for the next scanner cycle - if a release exists, a notification email is sent.
-   - Click unsubscribe - subscription is removed.
-
-2. **Automated tests:**
-   - `npm test` - unit tests with mocked dependencies.
-   - `npm run test:integration` - integration tests with real PostgreSQL via Testcontainers.
-
-3. **Metrics verification:**
-   - `GET /metrics` - confirm Prometheus metrics are being collected.
-   - Verify `http_requests_total` increments after API calls.
-
-### How to ensure it works in 3 months
-
-1. **Uptime monitoring:** Configure an external health check (e.g., UptimeRobot) to periodically hit `GET /` and alert on failures.
-2. **Prometheus + Grafana:** Set up dashboards for `http_request_duration_seconds` and `http_requests_total` to detect latency regressions or traffic anomalies.
-3. **Scanner health logging:** The scanner logs each scan cycle. Monitor logs for `RateLimitError` frequency - indicates approaching GitHub API limits.
-4. **Dependency updates:** Regularly update Node.js and npm dependencies (`npm audit`) to patch security vulnerabilities.
-5. **Email delivery monitoring:** Track email bounce rates via Resend dashboard or Gmail SMTP logs. Rising bounces indicate deliverability issues.
-6. **Database growth:** Monitor `subscriptions` table size. With current estimates (~1,000 rows), PostgreSQL will handle this for years without concern.
-
----
-
-## 15. Limitations & Future Improvements
+## 13. Future Improvements
 
 - **Single-process scanner:** The cron job runs in one process only. For horizontal scaling, a distributed job queue (BullMQ, RabbitMQ) would be needed.
 - **No inbound rate limiting:** No `express-rate-limit` or API gateway to protect against abuse.
