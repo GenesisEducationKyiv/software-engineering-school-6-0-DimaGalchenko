@@ -1,16 +1,26 @@
-const { ValidationError, NotFoundError, ConflictError } = require("../utils/errors");
+const {
+  ValidationError,
+  NotFoundError,
+  ConflictError,
+} = require("../utils/errors");
 const { generateToken } = require("./tokenService");
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const REPO_REGEX = /^[a-zA-Z0-9._-]+\/[a-zA-Z0-9._-]+$/;
 
-const createSubscriptionService = ({ subscriptionRepository, githubService, emailService }) => {
+const createSubscriptionService = ({
+  subscriptionRepository,
+  githubService,
+  emailService,
+}) => {
   const validateSubscribeInput = (email, repo) => {
     if (!email || !EMAIL_REGEX.test(email)) {
       throw new ValidationError("Invalid email address");
     }
     if (!repo || !REPO_REGEX.test(repo)) {
-      throw new ValidationError("Invalid repository format. Expected: owner/repo");
+      throw new ValidationError(
+        "Invalid repository format. Expected: owner/repo",
+      );
     }
   };
 
@@ -19,7 +29,10 @@ const createSubscriptionService = ({ subscriptionRepository, githubService, emai
 
     await githubService.validateRepository(repo);
 
-    const existing = await subscriptionRepository.findByEmailAndRepo(email, repo);
+    const existing = await subscriptionRepository.findByEmailAndRepo(
+      email,
+      repo,
+    );
 
     if (existing && existing.confirmed) {
       throw new ConflictError("Email already subscribed to this repository");
@@ -33,7 +46,12 @@ const createSubscriptionService = ({ subscriptionRepository, githubService, emai
     const confirmToken = generateToken();
     const unsubscribeToken = generateToken();
 
-    await subscriptionRepository.create({ email, repo, confirmToken, unsubscribeToken });
+    await subscriptionRepository.create({
+      email,
+      repo,
+      confirmToken,
+      unsubscribeToken,
+    });
     await emailService.sendConfirmation(email, confirmToken);
   };
 
@@ -56,7 +74,8 @@ const createSubscriptionService = ({ subscriptionRepository, githubService, emai
       throw new ValidationError("Invalid token");
     }
 
-    const subscription = await subscriptionRepository.findByUnsubscribeToken(token);
+    const subscription =
+      await subscriptionRepository.findByUnsubscribeToken(token);
 
     if (!subscription) {
       throw new NotFoundError("Token not found");
@@ -70,7 +89,7 @@ const createSubscriptionService = ({ subscriptionRepository, githubService, emai
       throw new ValidationError("Invalid email");
     }
 
-    return subscriptionRepository.findConfirmedByEmail(email);
+    return await subscriptionRepository.findConfirmedByEmail(email);
   };
 
   const listAllByEmail = async (email) => {
@@ -78,7 +97,7 @@ const createSubscriptionService = ({ subscriptionRepository, githubService, emai
       throw new ValidationError("Invalid email");
     }
 
-    return subscriptionRepository.findAllByEmail(email);
+    return await subscriptionRepository.findAllByEmail(email);
   };
 
   return { subscribe, confirm, unsubscribe, listByEmail, listAllByEmail };

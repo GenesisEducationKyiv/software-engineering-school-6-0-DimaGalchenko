@@ -1,6 +1,8 @@
 const config = {
   port: parseInt(process.env.PORT, 10) || 3000,
-  databaseUrl: process.env.DATABASE_URL || "postgres://postgres:postgres@localhost:5432/release_notifier",
+  databaseUrl:
+    process.env.DATABASE_URL ||
+    "postgres://postgres:postgres@localhost:5432/release_notifier",
   baseUrl: process.env.BASE_URL || "http://localhost:3000",
   github: {
     token: process.env.GITHUB_TOKEN || "",

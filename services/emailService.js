@@ -24,7 +24,13 @@ const createEmailService = ({ sender, config }) => {
     });
   };
 
-  const sendReleaseNotification = async (email, repo, tagName, htmlUrl, unsubscribeToken) => {
+  const sendReleaseNotification = async (
+    email,
+    repo,
+    tagName,
+    htmlUrl,
+    unsubscribeToken,
+  ) => {
     const unsubscribeUrl = `${config.baseUrl}/unsubscribe/${unsubscribeToken}`;
 
     await sender.send({

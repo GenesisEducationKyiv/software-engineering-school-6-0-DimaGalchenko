@@ -22,9 +22,7 @@ describe("AuthMiddleware", () => {
   it("passes through with valid API key", async () => {
     const app = buildTestApp("secret-key");
 
-    const res = await request(app)
-      .get("/test")
-      .set("x-api-key", "secret-key");
+    const res = await request(app).get("/test").set("x-api-key", "secret-key");
 
     expect(res.status).toBe(200);
     expect(res.body.ok).toBe(true);
@@ -42,9 +40,7 @@ describe("AuthMiddleware", () => {
   it("returns 401 when API key is invalid", async () => {
     const app = buildTestApp("secret-key");
 
-    const res = await request(app)
-      .get("/test")
-      .set("x-api-key", "wrong-key");
+    const res = await request(app).get("/test").set("x-api-key", "wrong-key");
 
     expect(res.status).toBe(401);
     expect(res.body.message).toBe("Invalid API key");

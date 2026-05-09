@@ -3,7 +3,10 @@ const express = require("express");
 const createRoutes = require("./routes");
 const errorHandler = require("./middleware/errorHandler");
 const createAuthMiddleware = require("./middleware/authMiddleware");
-const { metricsMiddleware, register } = require("./middleware/metricsMiddleware");
+const {
+  metricsMiddleware,
+  register,
+} = require("./middleware/metricsMiddleware");
 
 const createApp = (subscriptionService, apiKey) => {
   const app = express();
@@ -26,7 +29,11 @@ const createApp = (subscriptionService, apiKey) => {
     res.sendFile(path.join(__dirname, "public", "unsubscribe.html"));
   });
 
-  app.use("/api", createAuthMiddleware(apiKey), createRoutes(subscriptionService));
+  app.use(
+    "/api",
+    createAuthMiddleware(apiKey),
+    createRoutes(subscriptionService),
+  );
   app.use(errorHandler);
 
   return app;
