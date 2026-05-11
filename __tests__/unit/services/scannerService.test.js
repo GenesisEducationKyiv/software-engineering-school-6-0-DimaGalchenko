@@ -5,7 +5,6 @@ const createMockDependencies = () => ({
   subscriptionRepository: {
     findDistinctConfirmedRepos: jest.fn(),
     findConfirmedByRepo: jest.fn(),
-    updateLastSeenTag: jest.fn(),
     updateLastSeenTagById: jest.fn(),
   },
   githubService: {

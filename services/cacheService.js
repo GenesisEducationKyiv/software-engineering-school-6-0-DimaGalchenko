@@ -1,6 +1,4 @@
-const CACHE_TTL = parseInt(process.env.CACHE_TTL, 10) || 600;
-
-const createCacheService = (redisClient) => {
+const createCacheService = (redisClient, { ttl: defaultTtl = 600 } = {}) => {
   const get = async (key) => {
     try {
       const data = await redisClient.get(key);
@@ -10,7 +8,7 @@ const createCacheService = (redisClient) => {
     }
   };
 
-  const set = async (key, value, ttl = CACHE_TTL) => {
+  const set = async (key, value, ttl = defaultTtl) => {
     await redisClient.set(key, JSON.stringify(value), "EX", ttl);
   };
 
