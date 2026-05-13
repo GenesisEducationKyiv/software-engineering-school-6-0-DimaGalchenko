@@ -3,7 +3,7 @@
 | Field  | Value            |
 | ------ | ---------------- |
 | Status | **Accepted**     |
-| Date   | 2025-05-09       |
+| Date   | 2026-05-09       |
 | Author | Dmytro Galchenko |
 
 ---
@@ -12,10 +12,11 @@
 
 The system needs to detect new releases published on arbitrary public GitHub repositories and notify subscribers via email.
 
-- Users subscribe to repositories they do not own or administer.
 - The system must work with any public repository without requiring the repository owner's cooperation.
 - GitHub's REST API v3 provides a `/repos/{owner}/{repo}/releases` endpoint that returns the list of releases.
 - GitHub also offers Webhooks, but they require configuration on the target repository.
+
+**Constraint:** The task requires using the GitHub REST API for fetching release data, which rules out alternative data sources.
 
 ---
 
@@ -58,6 +59,22 @@ Register a webhook on each monitored repository to receive push notifications wh
 - If the webhook endpoint goes down, events are lost (GitHub retries are limited).
 - Does not scale to arbitrary repos subscribed by end users.
 
+### Alternative 3: GitHub RSS/Atom Feeds
+
+Subscribe to the Atom feed at `https://github.com/{owner}/{repo}/releases.atom` and poll it on a schedule.
+
+**Pros:**
+
+- No authentication required - feeds are public for public repos.
+- No API rate limit consumption (feeds are served by a different GitHub subsystem).
+- Simpler payload - only release metadata, no extra API fields.
+
+**Cons:**
+
+- Feed content and availability are not covered by GitHub's API SLA - may change without notice.
+- Limited metadata compared to the REST API (no assets, prerelease flag, etc.).
+- Not usable here: the task requires using the GitHub REST API for fetching release data.
+
 ---
 
 ## Decision
@@ -84,7 +101,7 @@ Cron-based polling is the only approach that satisfies this constraint. The trad
 
 - Notification latency is bounded by the polling interval (default: 1 minute).
 - GitHub API rate limit is consumed proportionally to the number of tracked repos per cycle.
-- Scaling beyond ~80 repos per minute (with 1-minute interval and authenticated rate limit) requires optimizations such as:
+- Scaling beyond ~200 repos per minute requires optimizations (5,000 req/hr with token = ~83 req/min, but caching and conditional requests reduce effective consumption):
   - Conditional requests (`If-None-Match` / ETags) to avoid counting unmodified responses.
   - Spreading scans across multiple intervals (not all repos every cycle).
   - Multiple GitHub tokens for increased aggregate rate limit.

@@ -1,5 +1,24 @@
 # System Design: GitHub Release Notification API
 
+## Table of Contents
+
+- [1. Context & Problem Statement](#1-context--problem-statement)
+- [2. System Requirements](#2-system-requirements)
+- [3. Load Estimation](#3-load-estimation)
+- [4. High-Level Architecture](#4-high-level-architecture)
+- [5. Detailed Component Design](#5-detailed-component-design)
+- [6. Data Schema](#6-data-schema)
+- [7. Key Flows](#7-key-flows)
+- [8. Caching Strategy](#8-caching-strategy)
+- [9. Error Handling](#9-error-handling)
+- [10. Observability](#10-observability)
+- [11. Security](#11-security)
+- [12. Technology Stack](#12-technology-stack)
+- [13. Testing & CI](#13-testing--ci)
+- [14. Future Improvements](#14-future-improvements)
+
+---
+
 ## 1. Context & Problem Statement
 
 Users who depend on open-source libraries need timely awareness of new releases.
@@ -20,7 +39,7 @@ Manually checking GitHub is tedious and error-prone.
 - **FR-3:** A user can unsubscribe through a unique link included in every notification email.
 - **FR-4:** The system periodically checks for new releases on a configurable schedule (cron).
 - **FR-5:** The system sends an email notification for every new release detected.
-- **FR-6:** The API is accessible via REST.
+- **FR-6:** The API is accessible via REST and gRPC.
 - **FR-7:** A user can view the list of active subscriptions.
 
 ### 2.2 Non-Functional Requirements
@@ -33,9 +52,12 @@ Manually checking GitHub is tedious and error-prone.
 ### 2.3 Constraints
 
 - GitHub REST API v3 rate limit: 60 req/hr (unauthenticated) or 5,000 req/hr (with token).
-- Single-process deployment on Render.com free/starter tier.
 - No webhook endpoint registration on monitored repos (users subscribe to repos they do not own).
 - Email delivery depends on third-party providers (Gmail SMTP or Resend API).
+
+### 2.4 Infrastructure Decisions
+
+- Single-process deployment on Render.com free/starter tier (see [ADR-002](adr/002-monolithic-architecture.md)).
 
 ---
 
@@ -58,7 +80,7 @@ Manually checking GitHub is tedious and error-prone.
 | Scan interval                             | 1 minute (configurable)                                 |
 | GitHub API calls per scan                 | 1 per unique repo = ~200                                |
 | Scans per hour                            | 60                                                      |
-| GitHub API calls per hour                 | ~12,000 (exceeds unauthenticated limit; token required) |
+| GitHub API calls per hour (without cache) | ~12,000 (exceeds unauthenticated limit; token required) |
 | Emails per day (avg 2 releases/repo/week) | ~60                                                     |
 
 ### 3.3 Data Sizes
@@ -83,26 +105,19 @@ Manually checking GitHub is tedious and error-prone.
 ```mermaid
 graph TB
     subgraph Clients
-        Browser["Web Browser (HTML UI)"]
-        REST["REST Client (curl, Postman)"]
+        Browser["Web Browser"]
+        REST["REST Client"]
         GRPC["gRPC Client"]
     end
 
-    subgraph AppServer["Application Server  - Node.js"]
-        Express["Express.js :3000"]
-        GRPCSrv["gRPC Server :50051"]
-        Middleware["Middleware (Auth, Error Handler, Metrics)"]
-        SubService["SubscriptionService"]
-        Scanner["ScannerService (cron)"]
-        GHService["GithubService"]
-        EmailSvc["EmailService"]
-        CacheSvc["CacheService"]
-        Repo["SubscriptionRepository"]
+    subgraph AppServer["Application Server (Node.js, single process)"]
+        API["API Layer<br/>(REST :3000 + gRPC :50051)"]
+        Background["Background Scanner<br/>(cron-based polling)"]
     end
 
     subgraph DataStores["Data Stores"]
         PG["PostgreSQL 16"]
-        Redis["Redis 7"]
+        Redis["Redis 7 (cache)"]
     end
 
     subgraph External["External Services"]
@@ -110,27 +125,21 @@ graph TB
         EmailProvider["Gmail SMTP / Resend API"]
     end
 
-    Browser --> Express
-    REST --> Express
-    GRPC --> GRPCSrv
+    Browser --> API
+    REST --> API
+    GRPC --> API
 
-    Express --> Middleware --> SubService
-    GRPCSrv --> SubService
+    API --> PG
+    API --> GHAPI
+    API --> Redis
+    API --> EmailProvider
 
-    SubService --> GHService
-    SubService --> EmailSvc
-    SubService --> Repo
-
-    Scanner -->|"every 1 min (node-cron)"| GHService
-    Scanner --> EmailSvc
-    Scanner --> Repo
-
-    GHService --> CacheSvc
-    GHService --> GHAPI
-    CacheSvc --> Redis
-    EmailSvc --> EmailProvider
-    Repo --> PG
+    Background -->|"every 1 min"| GHAPI
+    Background --> PG
+    Background --> EmailProvider
 ```
+
+> Internal component design is detailed in [Section 5](#5-detailed-component-design).
 
 ---
 
@@ -359,13 +368,13 @@ A centralized error handler middleware catches all errors and returns appropriat
 
 ## 11. Security
 
-| Measure                 | Description                                                                                                      |
-| ----------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| API Key authentication  | Optional `x-api-key` header; disabled when `API_KEY` env var is empty                                            |
-| Token-based email flows | `crypto.randomUUID()` tokens for confirm/unsubscribe prevent CSRF                                                |
-| Input validation        | Regex validation for email (`^[^\s@]+@[^\s@]+\.[^\s@]+$`) and repo format (`^[a-zA-Z0-9._-]+\/[a-zA-Z0-9._-]+$`) |
-| Database constraints    | `UNIQUE(email, repo)` prevents duplicate subscriptions at the DB level                                           |
-| gRPC                    | Currently plaintext (no TLS); requires TLS configuration for production                                          |
+| Measure                 | Description                                                                                                            |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| API Key authentication  | Optional `x-api-key` header; disabled when `API_KEY` env var is empty                                                  |
+| Token-based email flows | `crypto.randomUUID()` tokens for confirm/unsubscribe make links unguessable, reducing the risk of unauthorized actions |
+| Input validation        | Regex validation for email (`^[^\s@]+@[^\s@]+\.[^\s@]+$`) and repo format (`^[a-zA-Z0-9._-]+\/[a-zA-Z0-9._-]+$`)       |
+| Database constraints    | `UNIQUE(email, repo)` prevents duplicate subscriptions at the DB level                                                 |
+| gRPC                    | Currently plaintext (no TLS); requires TLS configuration for production                                                |
 
 ---
 
@@ -387,7 +396,30 @@ A centralized error handler middleware catches all errors and returns appropriat
 
 ---
 
-## 13. Future Improvements
+## 13. Testing & CI
+
+### Test Strategy
+
+| Level       | Tool                  | Scope                                                     |
+| ----------- | --------------------- | --------------------------------------------------------- |
+| Unit        | Jest                  | Each service tested in isolation with mocked dependencies |
+| Integration | Jest + Testcontainers | Full HTTP flow against a real PostgreSQL container        |
+| API         | Supertest             | Express routes tested via HTTP assertions                 |
+
+### CI Pipeline (GitHub Actions)
+
+The CI pipeline runs on every push and pull request:
+
+1. **Install dependencies** - `npm ci`
+2. **Lint** - `npx prettier --check .`
+3. **Unit tests** - `npx jest __tests__/unit` (no external dependencies)
+4. **Integration tests** - `npx jest __tests__/integration` (spins up PostgreSQL via Testcontainers)
+
+All tests must pass before a PR can be merged.
+
+---
+
+## 14. Future Improvements
 
 - **Single-process scanner:** The cron job runs in one process only. For horizontal scaling, a distributed job queue (BullMQ, RabbitMQ) would be needed.
 - **No inbound rate limiting:** No `express-rate-limit` or API gateway to protect against abuse.

@@ -3,7 +3,7 @@
 | Field  | Value            |
 | ------ | ---------------- |
 | Status | **Accepted**     |
-| Date   | 2025-05-09       |
+| Date   | 2026-05-09       |
 | Author | Dmytro Galchenko |
 
 ---
@@ -14,7 +14,7 @@ The system has three logical components with distinct responsibilities:
 
 - **API** - handles HTTP/gRPC requests for subscription management (subscribe, confirm, unsubscribe, list).
 - **Scanner** - a background cron job that polls GitHub for new releases and identifies subscribers to notify.
-- **Notifier** - sends email notifications (confirmation emails and release alerts) via Gmail SMTP or Resend API.
+- **Email Sending** - a shared dependency (`EmailService`) injected into both API (confirmation emails) and Scanner (release notifications), providing email delivery via Gmail SMTP or Resend API.
 
 The question is how to deploy and structure these components: as a single process (monolith), as separate microservices, or as serverless functions.
 
@@ -43,7 +43,7 @@ Run all three components (API, Scanner, Notifier) in a single Node.js process. S
 **Cons:**
 
 - Cannot scale components independently (e.g., more scanner instances without more API instances).
-- A crash in the scanner could take down the API (and vice versa).
+- An unhandled error in the scanner could crash the process and take down the API (mitigated by per-repo try/catch in the current implementation).
 - Single-process cron means only one instance can run the scanner - no distributed locking.
 - All components must use the same language and runtime.
 
