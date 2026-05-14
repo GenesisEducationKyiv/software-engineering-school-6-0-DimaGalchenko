@@ -77,13 +77,6 @@ const createSubscriptionRepository = (pool) => {
     return result.rows;
   };
 
-  const updateLastSeenTag = async (repo, tag) => {
-    await pool.query(
-      "UPDATE subscriptions SET last_seen_tag = $1 WHERE repo = $2 AND confirmed = true",
-      [tag, repo],
-    );
-  };
-
   const updateLastSeenTagById = async (id, tag) => {
     await pool.query(
       "UPDATE subscriptions SET last_seen_tag = $1 WHERE id = $2",
@@ -102,7 +95,6 @@ const createSubscriptionRepository = (pool) => {
     findAllByEmail,
     findDistinctConfirmedRepos,
     findConfirmedByRepo,
-    updateLastSeenTag,
     updateLastSeenTagById,
   };
 };

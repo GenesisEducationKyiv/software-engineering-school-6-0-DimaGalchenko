@@ -14,7 +14,7 @@ describe("CacheService", () => {
 
   beforeEach(() => {
     mockRedis = createMockRedis();
-    cacheService = createCacheService(mockRedis);
+    cacheService = createCacheService(mockRedis, { ttl: 600 });
   });
 
   describe("get", () => {

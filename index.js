@@ -1,8 +1,7 @@
 require("dotenv").config();
 const Redis = require("ioredis");
-const nodemailer = require("nodemailer");
 const config = require("./config");
-const pool = require("./db/pool");
+const createPool = require("./db/pool");
 const runMigrations = require("./db/migrate");
 const createSubscriptionRepository = require("./repositories/subscriptionRepository");
 const createGithubService = require("./services/githubService");
@@ -11,14 +10,16 @@ const {
   createNullCacheService,
 } = require("./services/cacheService");
 const createEmailService = require("./services/emailService");
-const createNodemailerSender = require("./services/senders/nodemailerSender");
-const createResendSender = require("./services/senders/resendSender");
+const createSender = require("./services/senders/senderFactory");
 const createSubscriptionService = require("./services/subscriptionService");
 const createScannerService = require("./services/scannerService");
+const createSchedulerService = require("./services/schedulerService");
+const { generateToken } = require("./services/tokenService");
 const createApp = require("./app");
 const createGrpcServer = require("./grpc/server");
 
 const start = async () => {
+  const pool = createPool(config.databaseUrl);
   await runMigrations(pool);
 
   const subscriptionRepository = createSubscriptionRepository(pool);
@@ -33,37 +34,40 @@ const start = async () => {
     redisClient.on("error", () => {});
     await redisClient.connect();
     await redisClient.ping();
-    cacheService = createCacheService(redisClient);
+    cacheService = createCacheService(redisClient, { ttl: config.cacheTtl });
   } catch (_err) {
     cacheService = createNullCacheService();
   }
 
   const githubService = createGithubService({ config, cacheService });
 
-  let sender;
-  if (config.email.provider === "resend") {
-    sender = createResendSender(config.email.resendApiKey);
-  } else {
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: {
-        user: config.email.user,
-        pass: config.email.pass,
-      },
-    });
-    sender = createNodemailerSender(transporter);
-  }
+  const sender = createSender(config);
 
   const emailService = createEmailService({ sender, config });
 
   const subscriptionService = createSubscriptionService({
-    subscriptionRepository,
+    subscriptionRepository: {
+      findByEmailAndRepo: subscriptionRepository.findByEmailAndRepo,
+      create: subscriptionRepository.create,
+      findByConfirmToken: subscriptionRepository.findByConfirmToken,
+      findByUnsubscribeToken: subscriptionRepository.findByUnsubscribeToken,
+      confirmByToken: subscriptionRepository.confirmByToken,
+      deleteByUnsubscribeToken: subscriptionRepository.deleteByUnsubscribeToken,
+      findConfirmedByEmail: subscriptionRepository.findConfirmedByEmail,
+      findAllByEmail: subscriptionRepository.findAllByEmail,
+    },
     githubService,
     emailService,
+    generateToken,
   });
 
   const scannerService = createScannerService({
-    subscriptionRepository,
+    subscriptionRepository: {
+      findDistinctConfirmedRepos:
+        subscriptionRepository.findDistinctConfirmedRepos,
+      findConfirmedByRepo: subscriptionRepository.findConfirmedByRepo,
+      updateLastSeenTagById: subscriptionRepository.updateLastSeenTagById,
+    },
     githubService,
     emailService,
   });
@@ -74,7 +78,8 @@ const start = async () => {
     console.log(`Server is running on port ${config.port}`);
   });
 
-  scannerService.start(config.scanCron);
+  const schedulerService = createSchedulerService();
+  schedulerService.start(config.scanCron, () => scannerService.scan());
 
   const grpcServer = createGrpcServer(subscriptionService);
   grpcServer.start(config.grpcPort);

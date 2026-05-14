@@ -1,3 +1,4 @@
+const crypto = require("crypto");
 const createSubscriptionService = require("../../../services/subscriptionService");
 const {
   ValidationError,
@@ -21,6 +22,7 @@ const createMockDependencies = () => ({
   emailService: {
     sendConfirmation: jest.fn().mockResolvedValue(undefined),
   },
+  generateToken: () => crypto.randomUUID(),
 });
 
 describe("SubscriptionService", () => {

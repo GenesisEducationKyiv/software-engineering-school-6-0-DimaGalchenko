@@ -1,5 +1,6 @@
 const createSubscriptionRepository = require("../../../repositories/subscriptionRepository");
 const createSubscriptionService = require("../../../services/subscriptionService");
+const { generateToken } = require("../../../services/tokenService");
 const createApp = require("../../../app");
 
 const buildApp = (pool) => {
@@ -17,6 +18,7 @@ const buildApp = (pool) => {
     subscriptionRepository,
     githubService,
     emailService,
+    generateToken,
   });
 
   const app = createApp(subscriptionService);
