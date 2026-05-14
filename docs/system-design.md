@@ -44,9 +44,9 @@ Manually checking GitHub is tedious and error-prone.
 
 ### 2.2 Non-Functional Requirements
 
-- **NFR-1 Availability:** The service should be available 24/7.
-- **NFR-2 Latency:** API responses for CRUD operations should be < 500 ms.
-- **NFR-3 Scalability:** Support thousands of subscriptions while respecting GitHub API rate limits (caching via Redis).
+- **NFR-1 Availability:** Target ~99% monthly uptime (acceptable for an MVP on Render.com free tier; no HA or failover).
+- **NFR-2 Latency:** API responses for CRUD operations should be < 500 ms at p95.
+- **NFR-3 Scalability:** Support thousands of subscriptions while respecting GitHub API rate limits. Redis caches repo-existence checks to reduce subscribe-time API calls; scanner release-fetching is rate-limited by GitHub directly (see [ADR-001](adr/001-cron-polling-vs-webhooks.md) for scaling strategy).
 - **NFR-4 Security:** Optional API Key authentication; token-based email confirmation and unsubscribe flows.
 
 ### 2.3 Constraints
@@ -165,7 +165,7 @@ graph TB
 | 400    | `ValidationError` | Invalid email or repo format        |
 | 404    | `NotFoundError`   | Repo doesn't exist or invalid token |
 | 409    | `ConflictError`   | Duplicate confirmed subscription    |
-| 503    | `RateLimitError`  | GitHub API rate limit exceeded      |
+| 429    | `RateLimitError`  | GitHub API rate limit exceeded      |
 
 #### gRPC Endpoints (port 50051)
 
@@ -312,6 +312,8 @@ sequenceDiagram
     end
 ```
 
+**Idempotency note:** The scanner is not fully idempotent. If a scan crashes after sending some emails but before updating `last_seen_tag`, those subscribers will receive duplicate notifications on the next cycle. This is an accepted trade-off for the MVP — at-least-once delivery is preferred over missed notifications. A future improvement would be to update `last_seen_tag` per-release (rather than after all emails) or use a separate "sent" log.
+
 ---
 
 ## 8. Caching Strategy
@@ -342,7 +344,7 @@ AppError (base, 500)
 ├── ValidationError (400)  - invalid email format, invalid repo format
 ├── NotFoundError (404)    - repository not found, invalid token
 ├── ConflictError (409)    - duplicate confirmed subscription
-└── RateLimitError (503)   - GitHub API rate limit exceeded
+└── RateLimitError (429)   - GitHub API rate limit exceeded
 ```
 
 A centralized error handler middleware catches all errors and returns appropriate HTTP status codes.

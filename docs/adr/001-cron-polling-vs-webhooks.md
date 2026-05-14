@@ -1,4 +1,4 @@
-# ADR-001: Cron-Based Polling vs GitHub Webhooks
+# ADR-001: Polling Strategy for Release Detection
 
 | Field  | Value            |
 | ------ | ---------------- |
@@ -14,76 +14,82 @@ The system needs to detect new releases published on arbitrary public GitHub rep
 
 - The system must work with any public repository without requiring the repository owner's cooperation.
 - GitHub's REST API v3 provides a `/repos/{owner}/{repo}/releases` endpoint that returns the list of releases.
-- GitHub also offers Webhooks, but they require configuration on the target repository.
+- The task requires using the GitHub REST API for fetching release data.
 
-**Constraint:** The task requires using the GitHub REST API for fetching release data, which rules out alternative data sources.
+### Why Polling Is the Only Option
+
+**Webhooks** require admin/write access to register on a repository. Since users subscribe to repos they do not own, webhooks are not viable.
+
+**RSS/Atom feeds** (`https://github.com/{owner}/{repo}/releases.atom`) bypass API rate limits but are not covered by GitHub's API SLA, offer limited metadata (no assets, prerelease flag), and do not satisfy the task requirement to use the GitHub REST API.
+
+Given these constraints, the real question is **how to poll**, not **whether to poll**.
 
 ---
 
 ## Alternatives Considered
 
-### Alternative 1: Cron-Based Polling
+### Alternative 1: Simple Cron Polling
 
-Periodically call the GitHub REST API on a schedule (e.g., every minute) to fetch the latest releases for each tracked repository, compare with the last known release tag, and send notifications for any new ones.
+A single `node-cron` job fires on a fixed schedule (e.g., every minute), iterates over all tracked repos sequentially, calls the GitHub REST API for each, and sends notifications for new releases.
 
 **Pros:**
 
-- Works with any public repository without any setup on the repo side.
-- Simple to implement - a single `node-cron` job with sequential API calls.
+- Simple to implement - one cron job, sequential loop.
 - No public endpoint or ingress configuration needed.
 - Full control over scan frequency.
-- No dependency on repository owners or third-party webhook infrastructure.
+- Easy to test (trigger a scan manually) and debug (deterministic, synchronous flow).
 
 **Cons:**
 
-- Notification latency up to the polling interval (e.g., up to 1 minute).
-- Consumes GitHub API rate limit on every cycle (1 call per tracked repo per cycle).
-- Rate limit becomes a bottleneck as the number of tracked repos grows (5,000 req/hr with token).
-- Redundant API calls when no new releases have been published.
+- Every cycle makes one API call per repo, regardless of whether anything changed.
+- At 200 repos with 1-minute interval: ~12,000 calls/hr (within the 5,000/hr token limit only if some calls are cached or skipped).
+- Notification latency up to the polling interval.
 
-### Alternative 2: GitHub Webhooks
+### Alternative 2: Cron Polling with Conditional Requests (ETags)
 
-Register a webhook on each monitored repository to receive push notifications when a new release is created.
+Same cron approach, but use `If-None-Match` headers with ETags returned by GitHub. Responses with status `304 Not Modified` do not count against the rate limit.
 
 **Pros:**
 
-- Near-real-time notifications (seconds after a release is published).
-- No wasted API calls - events are pushed only when something happens.
-- No rate limit consumption for release detection.
+- Dramatically reduces effective rate limit consumption - most cycles have no new releases.
+- Same simplicity as Alternative 1 in terms of architecture.
+- Scales to more repos within the same rate limit budget.
 
 **Cons:**
 
-- Requires admin/write access to the target repository to register webhooks - impossible for repos the user doesn't own.
-- Needs a publicly accessible HTTPS endpoint to receive webhook payloads, exposing an additional attack surface (DDoS, spoofed payloads).
-- Webhook management complexity: registration, secret validation, retries, deregistration.
-- If the webhook endpoint goes down, events are lost (GitHub retries are limited).
-- Does not scale to arbitrary repos subscribed by end users.
+- Requires persisting ETag values per repo (additional storage/complexity).
+- Still makes one HTTP request per repo per cycle (network traffic remains, even if 304).
+- GitHub's ETag behavior for `/releases` is not always documented clearly.
 
-### Alternative 3: GitHub RSS/Atom Feeds
+### Alternative 3: Job Queue with Spread Scheduling
 
-Subscribe to the Atom feed at `https://github.com/{owner}/{repo}/releases.atom` and poll it on a schedule.
+Replace the single cron loop with a distributed job queue (e.g., BullMQ). Spread repo checks across the interval so that not all repos are polled simultaneously.
 
 **Pros:**
 
-- No authentication required - feeds are public for public repos.
-- No API rate limit consumption (feeds are served by a different GitHub subsystem).
-- Simpler payload - only release metadata, no extra API fields.
+- Smooths out API call bursts across the interval.
+- Supports horizontal scaling with multiple workers.
+- Built-in retry and failure handling.
 
 **Cons:**
 
-- Feed content and availability are not covered by GitHub's API SLA - may change without notice.
-- Limited metadata compared to the REST API (no assets, prerelease flag, etc.).
-- Not usable here: the task requires using the GitHub REST API for fetching release data.
+- Significant architectural complexity (Redis-backed queue, worker processes).
+- Overkill for MVP scale (~200 repos).
+- Requires distributed locking to avoid duplicate scans.
 
 ---
 
 ## Decision
 
-**Chosen: Cron-Based Polling (Alternative 1)**
+**Chosen: Simple Cron Polling (Alternative 1)**
 
-The core requirement is to monitor any public repository without needing the repository owner's involvement. Webhooks require configuration on the target repository, which is not possible when users subscribe to repos they do not control.
+For the current MVP scale (~200 repos, ~1,000 subscribers), simple cron polling is the most pragmatic choice:
 
-Cron-based polling is the only approach that satisfies this constraint. The trade-off of slightly delayed notifications (up to 1 minute) and increased API consumption is acceptable for the current scale (~200 repos, well within the 5,000 req/hr authenticated limit).
+1. **Scale fits:** ~200 API calls per minute is well within the 5,000 req/hr authenticated limit.
+2. **Simplicity:** A single `node-cron` job with a sequential loop has the fewest moving parts and is easy to reason about.
+3. **Migration path:** The architecture (factory-function DI, separated scanner service) makes it straightforward to adopt ETags (Alternative 2) or a job queue (Alternative 3) later if scaling demands it.
+
+Alternative 2 (ETags) is the natural next step when approaching rate limits and is documented as a future improvement.
 
 ---
 
@@ -94,15 +100,11 @@ Cron-based polling is the only approach that satisfies this constraint. The trad
 - Any public repository can be monitored without requiring owner cooperation.
 - Implementation is straightforward - a single cron job iterating over repos.
 - No external ingress or public webhook endpoint required.
-- Easy to test (trigger a scan manually) and debug (deterministic, synchronous flow).
 - Scan frequency is fully configurable via environment variable.
 
 ### Negative
 
 - Notification latency is bounded by the polling interval (default: 1 minute).
 - GitHub API rate limit is consumed proportionally to the number of tracked repos per cycle.
-- Scaling beyond ~200 repos per minute requires optimizations (5,000 req/hr with token = ~83 req/min, but caching and conditional requests reduce effective consumption):
-  - Conditional requests (`If-None-Match` / ETags) to avoid counting unmodified responses.
-  - Spreading scans across multiple intervals (not all repos every cycle).
-  - Multiple GitHub tokens for increased aggregate rate limit.
+- Scaling beyond the current ~200 repos requires adopting conditional requests (ETags) or spreading scans across intervals.
 - Redundant network traffic when no new releases exist.
