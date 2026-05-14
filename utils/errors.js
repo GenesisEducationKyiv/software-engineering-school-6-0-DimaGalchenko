@@ -26,7 +26,7 @@ class ConflictError extends AppError {
 
 class RateLimitError extends AppError {
   constructor(retryAfter) {
-    super("GitHub API rate limit exceeded", 503);
+    super("GitHub API rate limit exceeded", 429);
     this.retryAfter = retryAfter;
   }
 }
