@@ -4,6 +4,9 @@ const createSchedulerService = () => {
   let task = null;
 
   const start = (cronExpression, taskFn) => {
+    if (task) {
+      task.stop();
+    }
     taskFn();
     task = cron.schedule(cronExpression, taskFn);
   };

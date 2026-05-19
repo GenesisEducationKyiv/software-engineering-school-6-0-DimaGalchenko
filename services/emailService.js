@@ -3,15 +3,13 @@ const {
   renderReleaseNotificationEmail,
 } = require("./emailTemplates");
 
-const createEmailService = ({ sender, config }) => {
+const createEmailService = ({ sender, emailFrom, linkBuilder }) => {
   const sendConfirmation = async (email, confirmToken) => {
-    const confirmUrl = `${config.baseUrl}/confirm/${confirmToken}`;
-
     await sender.send({
-      from: config.email.from,
+      from: emailFrom,
       to: email,
       subject: "Confirm your subscription",
-      html: renderConfirmationEmail(confirmUrl),
+      html: renderConfirmationEmail(linkBuilder.confirmUrl(confirmToken)),
     });
   };
 
@@ -22,17 +20,15 @@ const createEmailService = ({ sender, config }) => {
     htmlUrl,
     unsubscribeToken,
   ) => {
-    const unsubscribeUrl = `${config.baseUrl}/unsubscribe/${unsubscribeToken}`;
-
     await sender.send({
-      from: config.email.from,
+      from: emailFrom,
       to: email,
       subject: `New release ${tagName} for ${repo}`,
       html: renderReleaseNotificationEmail({
         repo,
         tagName,
         htmlUrl,
-        unsubscribeUrl,
+        unsubscribeUrl: linkBuilder.unsubscribeUrl(unsubscribeToken),
       }),
     });
   };

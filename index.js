@@ -10,15 +10,18 @@ const {
   createNullCacheService,
 } = require("./services/cacheService");
 const createEmailService = require("./services/emailService");
+const createEmailLinkBuilder = require("./services/emailLinkBuilder");
 const createSender = require("./services/senders/senderFactory");
 const createSubscriptionService = require("./services/subscriptionService");
 const createScannerService = require("./services/scannerService");
 const createSchedulerService = require("./services/schedulerService");
+const createLogger = require("./services/logger");
 const { generateToken } = require("./services/tokenService");
 const createApp = require("./app");
 const createGrpcServer = require("./grpc/server");
 
 const start = async () => {
+  const logger = createLogger();
   const pool = createPool(config.databaseUrl);
   await runMigrations(pool);
 
@@ -42,8 +45,13 @@ const start = async () => {
   const githubService = createGithubService({ config, cacheService });
 
   const sender = createSender(config);
+  const linkBuilder = createEmailLinkBuilder(config.baseUrl);
 
-  const emailService = createEmailService({ sender, config });
+  const emailService = createEmailService({
+    sender,
+    emailFrom: config.email.from,
+    linkBuilder,
+  });
 
   const subscriptionService = createSubscriptionService({
     subscriptionRepository: {
@@ -70,6 +78,7 @@ const start = async () => {
     },
     githubService,
     emailService,
+    logger,
   });
 
   const app = createApp(subscriptionService, config.apiKey);

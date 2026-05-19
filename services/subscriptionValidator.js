@@ -1,10 +1,12 @@
+const { z } = require("zod");
 const { ValidationError } = require("../utils/errors");
 
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const emailSchema = z.string().email();
+const uuidSchema = z.string().uuid();
 const REPO_REGEX = /^[a-zA-Z0-9._-]+\/[a-zA-Z0-9._-]+$/;
 
 const validateEmail = (email) => {
-  if (!email || !EMAIL_REGEX.test(email)) {
+  if (!emailSchema.safeParse(email).success) {
     throw new ValidationError("Invalid email address");
   }
 };
@@ -18,7 +20,7 @@ const validateRepo = (repo) => {
 };
 
 const validateToken = (token) => {
-  if (!token) {
+  if (!uuidSchema.safeParse(token).success) {
     throw new ValidationError("Invalid token");
   }
 };

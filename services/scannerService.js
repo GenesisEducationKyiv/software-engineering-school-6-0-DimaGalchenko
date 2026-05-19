@@ -5,6 +5,7 @@ const createScannerService = ({
   subscriptionRepository,
   githubService,
   emailService,
+  logger,
 }) => {
   let scanning = false;
 
@@ -30,7 +31,7 @@ const createScannerService = ({
             subscriber.unsubscribe_token,
           );
         } catch (err) {
-          console.error(
+          logger.error(
             `Failed to notify ${subscriber.email} for ${repo}: ${err.message}`,
           );
         }
@@ -60,12 +61,12 @@ const createScannerService = ({
           await processRepo(repo);
         } catch (err) {
           if (err instanceof RateLimitError) {
-            console.error(
+            logger.error(
               `Rate limited. Pausing scan. Retry after ${err.retryAfter}s`,
             );
             return;
           }
-          console.error(`Error scanning ${repo}: ${err.message}`);
+          logger.error(`Error scanning ${repo}: ${err.message}`);
         }
       }
     } finally {

@@ -13,6 +13,10 @@ const createMockDependencies = () => ({
   emailService: {
     sendReleaseNotification: jest.fn().mockResolvedValue(undefined),
   },
+  logger: {
+    info: jest.fn(),
+    error: jest.fn(),
+  },
 });
 
 describe("ScannerService", () => {
