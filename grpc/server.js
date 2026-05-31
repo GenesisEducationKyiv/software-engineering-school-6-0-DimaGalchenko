@@ -100,7 +100,12 @@ const createGrpcServer = (subscriptionService) => {
     );
   };
 
-  return { start, server };
+  const stop = () =>
+    new Promise((resolve, reject) => {
+      server.tryShutdown((err) => (err ? reject(err) : resolve()));
+    });
+
+  return { start, stop };
 };
 
 module.exports = createGrpcServer;

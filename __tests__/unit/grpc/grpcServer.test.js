@@ -40,22 +40,13 @@ describe("gRPC Server", () => {
     };
 
     grpcServer = createGrpcServer(mockService);
-    grpcServer.server.bindAsync(
-      `0.0.0.0:${port}`,
-      grpc.ServerCredentials.createInsecure(),
-      (err) => {
-        if (err) {
-          done(err);
-          return;
-        }
-        client = loadClient(port);
-        done();
-      },
-    );
+    grpcServer.start(port);
+    client = loadClient(port);
+    done();
   });
 
-  afterAll((done) => {
-    grpcServer.server.tryShutdown(done);
+  afterAll(async () => {
+    await grpcServer.stop();
   });
 
   describe("Subscribe", () => {

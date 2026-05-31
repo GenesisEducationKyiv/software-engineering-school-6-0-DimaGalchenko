@@ -44,7 +44,7 @@ const start = async () => {
 
   const githubService = createGithubService({ config, cacheService });
 
-  const sender = createSender(config);
+  const sender = createSender(config.email);
   const linkBuilder = createEmailLinkBuilder(config.baseUrl);
 
   const emailService = createEmailService({
@@ -83,7 +83,7 @@ const start = async () => {
 
   const app = createApp(subscriptionService, config.apiKey);
 
-  app.listen(config.port, () => {
+  const server = app.listen(config.port, () => {
     console.log(`Server is running on port ${config.port}`);
   });
 
@@ -92,6 +92,17 @@ const start = async () => {
 
   const grpcServer = createGrpcServer(subscriptionService);
   grpcServer.start(config.grpcPort);
+
+  const shutdown = async () => {
+    schedulerService.stop();
+    server.close();
+    await grpcServer.stop();
+    await pool.end();
+    process.exit(0);
+  };
+
+  process.on("SIGTERM", shutdown);
+  process.on("SIGINT", shutdown);
 };
 
 start().catch((err) => {
