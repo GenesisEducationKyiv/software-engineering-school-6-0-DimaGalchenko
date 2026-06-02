@@ -1,24 +1,13 @@
-const cron = require("node-cron");
 const { RateLimitError } = require("../utils/errors");
+const { getMissedReleases } = require("./releaseComparer");
 
 const createScannerService = ({
   subscriptionRepository,
   githubService,
   emailService,
+  logger,
 }) => {
-  let task = null;
   let scanning = false;
-
-  const getMissedReleases = (releases, lastSeenTag) => {
-    if (!lastSeenTag) {
-      return releases.length > 0 ? [releases[0]] : [];
-    }
-
-    const lastSeenIndex = releases.findIndex((r) => r.tagName === lastSeenTag);
-    const newReleases =
-      lastSeenIndex === -1 ? releases : releases.slice(0, lastSeenIndex);
-    return newReleases.reverse();
-  };
 
   const processRepo = async (repo) => {
     const releases = await githubService.fetchReleases(repo);
@@ -42,7 +31,7 @@ const createScannerService = ({
             subscriber.unsubscribe_token,
           );
         } catch (err) {
-          console.error(
+          logger.error(
             `Failed to notify ${subscriber.email} for ${repo}: ${err.message}`,
           );
         }
@@ -72,12 +61,12 @@ const createScannerService = ({
           await processRepo(repo);
         } catch (err) {
           if (err instanceof RateLimitError) {
-            console.error(
+            logger.error(
               `Rate limited. Pausing scan. Retry after ${err.retryAfter}s`,
             );
             return;
           }
-          console.error(`Error scanning ${repo}: ${err.message}`);
+          logger.error(`Error scanning ${repo}: ${err.message}`);
         }
       }
     } finally {
@@ -85,19 +74,7 @@ const createScannerService = ({
     }
   };
 
-  const start = (cronExpression) => {
-    scan();
-    task = cron.schedule(cronExpression, scan);
-  };
-
-  const stop = () => {
-    if (task) {
-      task.stop();
-      task = null;
-    }
-  };
-
-  return { scan, processRepo, start, stop };
+  return { scan, processRepo };
 };
 
 module.exports = createScannerService;

@@ -19,6 +19,7 @@ const config = {
   redisUrl: process.env.REDIS_URL || "redis://localhost:6379",
   apiKey: process.env.API_KEY || "",
   grpcPort: parseInt(process.env.GRPC_PORT, 10) || 50051,
+  cacheTtl: parseInt(process.env.CACHE_TTL, 10) || 600,
 };
 
 module.exports = config;

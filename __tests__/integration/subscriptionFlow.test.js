@@ -162,7 +162,9 @@ describe("Subscription Integration", () => {
     });
 
     it("returns 404 for unknown token", async () => {
-      const res = await request(app).get("/api/confirm/nonexistent-token");
+      const res = await request(app).get(
+        "/api/confirm/550e8400-e29b-41d4-a716-446655440000",
+      );
 
       expect(res.status).toBe(404);
     });
@@ -192,7 +194,9 @@ describe("Subscription Integration", () => {
     });
 
     it("returns 404 for unknown token", async () => {
-      const res = await request(app).get("/api/unsubscribe/nonexistent-token");
+      const res = await request(app).get(
+        "/api/unsubscribe/550e8400-e29b-41d4-a716-446655440000",
+      );
 
       expect(res.status).toBe(404);
     });

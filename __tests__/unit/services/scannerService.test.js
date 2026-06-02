@@ -5,7 +5,6 @@ const createMockDependencies = () => ({
   subscriptionRepository: {
     findDistinctConfirmedRepos: jest.fn(),
     findConfirmedByRepo: jest.fn(),
-    updateLastSeenTag: jest.fn(),
     updateLastSeenTagById: jest.fn(),
   },
   githubService: {
@@ -13,6 +12,10 @@ const createMockDependencies = () => ({
   },
   emailService: {
     sendReleaseNotification: jest.fn().mockResolvedValue(undefined),
+  },
+  logger: {
+    info: jest.fn(),
+    error: jest.fn(),
   },
 });
 

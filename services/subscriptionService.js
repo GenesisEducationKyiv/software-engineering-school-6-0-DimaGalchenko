@@ -1,31 +1,19 @@
+const { NotFoundError, ConflictError } = require("../utils/errors");
 const {
-  ValidationError,
-  NotFoundError,
-  ConflictError,
-} = require("../utils/errors");
-const { generateToken } = require("./tokenService");
-
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const REPO_REGEX = /^[a-zA-Z0-9._-]+\/[a-zA-Z0-9._-]+$/;
+  validateEmail,
+  validateRepo,
+  validateToken,
+} = require("./subscriptionValidator");
 
 const createSubscriptionService = ({
   subscriptionRepository,
   githubService,
   emailService,
+  generateToken,
 }) => {
-  const validateSubscribeInput = (email, repo) => {
-    if (!email || !EMAIL_REGEX.test(email)) {
-      throw new ValidationError("Invalid email address");
-    }
-    if (!repo || !REPO_REGEX.test(repo)) {
-      throw new ValidationError(
-        "Invalid repository format. Expected: owner/repo",
-      );
-    }
-  };
-
   const subscribe = async (email, repo) => {
-    validateSubscribeInput(email, repo);
+    validateEmail(email);
+    validateRepo(repo);
 
     await githubService.validateRepository(repo);
 
@@ -56,9 +44,7 @@ const createSubscriptionService = ({
   };
 
   const confirm = async (token) => {
-    if (!token) {
-      throw new ValidationError("Invalid token");
-    }
+    validateToken(token);
 
     const subscription = await subscriptionRepository.findByConfirmToken(token);
 
@@ -70,9 +56,7 @@ const createSubscriptionService = ({
   };
 
   const unsubscribe = async (token) => {
-    if (!token) {
-      throw new ValidationError("Invalid token");
-    }
+    validateToken(token);
 
     const subscription =
       await subscriptionRepository.findByUnsubscribeToken(token);
@@ -85,17 +69,13 @@ const createSubscriptionService = ({
   };
 
   const listByEmail = async (email) => {
-    if (!email || !EMAIL_REGEX.test(email)) {
-      throw new ValidationError("Invalid email");
-    }
+    validateEmail(email);
 
     return await subscriptionRepository.findConfirmedByEmail(email);
   };
 
   const listAllByEmail = async (email) => {
-    if (!email || !EMAIL_REGEX.test(email)) {
-      throw new ValidationError("Invalid email");
-    }
+    validateEmail(email);
 
     return await subscriptionRepository.findAllByEmail(email);
   };
