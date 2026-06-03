@@ -2,6 +2,7 @@ const createSubscriptionRepository = require("../../../repositories/subscription
 const createSubscriptionService = require("../../../services/subscriptionService");
 const { generateToken } = require("../../../services/tokenService");
 const createApp = require("../../../app");
+const createLogger = require("../../../services/logger");
 
 const buildApp = (pool) => {
   const subscriptionRepository = createSubscriptionRepository(pool);
@@ -21,7 +22,7 @@ const buildApp = (pool) => {
     generateToken,
   });
 
-  const app = createApp(subscriptionService);
+  const app = createApp(subscriptionService, "", createLogger());
 
   return { app, githubService, emailService };
 };

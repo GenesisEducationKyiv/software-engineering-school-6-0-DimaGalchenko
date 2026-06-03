@@ -1,6 +1,7 @@
 const { PostgreSqlContainer } = require("@testcontainers/postgresql");
 const { Pool } = require("pg");
 const runMigrations = require("../../../db/migrate");
+const createLogger = require("../../../services/logger");
 
 let container;
 let pool;
@@ -16,7 +17,7 @@ const startDatabase = async () => {
     password: container.getPassword(),
   });
 
-  await runMigrations(pool);
+  await runMigrations(pool, createLogger());
 
   return pool;
 };
