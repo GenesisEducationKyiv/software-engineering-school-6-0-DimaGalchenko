@@ -14,6 +14,8 @@ services:
       SCAN_CRON: "*/1 * * * *"
       REDIS_URL: redis://redis:6379
       API_KEY: ""
+      LOGSTASH_HOST: logstash
+      LOGSTASH_PORT: 51415
     depends_on:
       db:
         condition: service_healthy
@@ -47,5 +49,55 @@ services:
       timeout: 3s
       retries: 5
 
+  elasticsearch:
+    image: elasticsearch:8.17.0
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
+    volumes:
+      - esdata:/var/lib/elasticsearch/data
+
+  logstash:
+    image: logstash:8.17.0
+    volumes:
+      - ./logstash/pipeline:/usr/share/logstash/pipeline
+    ports:
+      - "5044:5044"
+      - "51415:51415/tcp"
+    depends_on:
+      - elasticsearch
+
+  kibana:
+    image: kibana:8.17.0
+    ports:
+      - "5601:5601"
+    environment:
+      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+    depends_on:
+      - elasticsearch
+
+  prometheus:
+    image: prom/prometheus:v3.4.0
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+
+  grafana:
+    image: grafana/grafana:12.0.1
+    ports:
+      - "3001:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana/dashboards:/var/lib/grafana/dashboards
+    depends_on:
+      - prometheus
+
 volumes:
   pgdata:
+  esdata:

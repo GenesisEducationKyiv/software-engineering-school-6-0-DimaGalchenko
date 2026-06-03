@@ -20,6 +20,8 @@ const config = {
   apiKey: process.env.API_KEY || "",
   grpcPort: parseInt(process.env.GRPC_PORT, 10) || 50051,
   cacheTtl: parseInt(process.env.CACHE_TTL, 10) || 600,
+  logstashHost: process.env.LOGSTASH_HOST || "",
+  logstashPort: parseInt(process.env.LOGSTASH_PORT, 10) || 51415,
 };
 
 module.exports = config;

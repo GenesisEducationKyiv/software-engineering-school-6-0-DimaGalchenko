@@ -19,6 +19,13 @@ const httpRequestsTotal = new client.Counter({
   registers: [register],
 });
 
+const httpErrorsTotal = new client.Counter({
+  name: "http_errors_total",
+  help: "Total number of HTTP error responses (4xx and 5xx)",
+  labelNames: ["method", "route", "status_code"],
+  registers: [register],
+});
+
 const normalizeRoute = (req) => {
   if (req.route) {
     return req.baseUrl + req.route.path;
@@ -38,6 +45,9 @@ const metricsMiddleware = (req, res, next) => {
     };
     end(labels);
     httpRequestsTotal.inc(labels);
+    if (res.statusCode >= 400) {
+      httpErrorsTotal.inc(labels);
+    }
   });
 
   next();

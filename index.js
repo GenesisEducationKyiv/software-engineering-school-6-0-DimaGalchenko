@@ -19,11 +19,11 @@ const createLogger = require("./services/logger");
 const { generateToken } = require("./services/tokenService");
 const createApp = require("./app");
 const createGrpcServer = require("./grpc/server");
+const logger = createLogger(config);
 
 const start = async () => {
-  const logger = createLogger();
   const pool = createPool(config.databaseUrl);
-  await runMigrations(pool);
+  await runMigrations(pool, logger);
 
   const subscriptionRepository = createSubscriptionRepository(pool);
 
@@ -81,10 +81,10 @@ const start = async () => {
     logger,
   });
 
-  const app = createApp(subscriptionService, config.apiKey);
+  const app = createApp(subscriptionService, config.apiKey, logger);
 
   const server = app.listen(config.port, () => {
-    console.log(`Server is running on port ${config.port}`);
+    logger.info(`Server is running on port ${config.port}`);
   });
 
   const schedulerService = createSchedulerService();
@@ -106,6 +106,9 @@ const start = async () => {
 };
 
 start().catch((err) => {
-  console.error("Failed to start server:", err);
+  logger.error("Failed to start server", {
+    error: err.message,
+    stack: err.stack,
+  });
   process.exit(1);
 });

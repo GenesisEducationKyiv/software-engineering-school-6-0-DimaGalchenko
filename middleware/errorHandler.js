@@ -1,13 +1,18 @@
 const { AppError } = require("../utils/errors");
 
-const errorHandler = (err, req, res, _next) => {
+const createErrorHandler = (logger) => (err, req, res, _next) => {
   if (err instanceof AppError) {
     res.status(err.statusCode).json({ message: err.message });
     return;
   }
 
-  console.error(err);
+  logger.error("Unhandled error", {
+    error: err.message,
+    stack: err.stack,
+    method: req.method,
+    url: req.originalUrl,
+  });
   res.status(500).json({ message: "Internal server error" });
 };
 
-module.exports = errorHandler;
+module.exports = createErrorHandler;
