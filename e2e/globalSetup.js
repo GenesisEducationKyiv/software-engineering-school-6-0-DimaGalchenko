@@ -16,6 +16,7 @@ module.exports = async () => {
     password: container.getPassword(),
   });
 
+  await pool.query("SELECT 1");
   await runMigrations(pool);
 
   const subscriptionRepository = createSubscriptionRepository(pool);

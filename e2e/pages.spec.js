@@ -7,11 +7,23 @@ test.beforeEach(async () => {
   expect(res.ok).toBeTruthy();
 });
 
+async function subscribe(email, repo) {
+  const res = await fetch(`${BASE}/api/subscribe`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, repo }),
+  });
+  const body = await res.json();
+  expect(res.ok, `Subscribe failed: ${JSON.stringify(body)}`).toBeTruthy();
+}
+
 async function getTokens(email) {
   const res = await fetch(
     `${BASE}/__test__/tokens?email=${encodeURIComponent(email)}`,
   );
-  return res.json();
+  const tokens = await res.json();
+  expect(tokens.length, `No tokens found for ${email}`).toBeGreaterThan(0);
+  return tokens;
 }
 
 test.describe("Index page - Subscribe tab", () => {
@@ -67,14 +79,8 @@ test.describe("Index page - My Subscriptions tab", () => {
   });
 
   test("lookup shows confirmed subscriptions", async ({ page }) => {
-    const subRes = await fetch(`${BASE}/api/subscribe`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: "e2e@example.com", repo: "owner/repo" }),
-    });
-    expect(subRes.ok).toBeTruthy();
+    await subscribe("e2e@example.com", "owner/repo");
     const tokens = await getTokens("e2e@example.com");
-    expect(tokens.length).toBeGreaterThan(0);
     await fetch(`${BASE}/api/confirm/${tokens[0].confirm_token}`);
 
     await page.goto("/");
@@ -98,17 +104,8 @@ test.describe("Confirm page", () => {
   });
 
   test("valid token shows success", async ({ page }) => {
-    const subRes = await fetch(`${BASE}/api/subscribe`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        email: "confirm@example.com",
-        repo: "owner/repo",
-      }),
-    });
-    expect(subRes.ok).toBeTruthy();
+    await subscribe("confirm@example.com", "owner/repo");
     const tokens = await getTokens("confirm@example.com");
-    expect(tokens.length).toBeGreaterThan(0);
 
     await page.goto(`/confirm/${tokens[0].confirm_token}`);
 
@@ -126,17 +123,8 @@ test.describe("Unsubscribe page", () => {
   });
 
   test("valid token shows success", async ({ page }) => {
-    const subRes = await fetch(`${BASE}/api/subscribe`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        email: "unsub@example.com",
-        repo: "owner/repo",
-      }),
-    });
-    expect(subRes.ok).toBeTruthy();
+    await subscribe("unsub@example.com", "owner/repo");
     const tokens = await getTokens("unsub@example.com");
-    expect(tokens.length).toBeGreaterThan(0);
 
     await page.goto(`/unsubscribe/${tokens[0].unsubscribe_token}`);
 
