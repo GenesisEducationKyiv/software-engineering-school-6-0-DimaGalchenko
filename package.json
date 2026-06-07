@@ -5,7 +5,7 @@
   "scripts": {
     "start": "node index.js",
     "test": "jest --verbose",
-    "test:unit": "jest --testPathIgnorePatterns=integration --verbose",
+    "test:unit": "jest --testPathPatterns=unit --verbose",
     "test:integration": "jest --testPathPatterns=integration --verbose",
     "test:e2e": "playwright test",
     "test:coverage": "jest --coverage",
