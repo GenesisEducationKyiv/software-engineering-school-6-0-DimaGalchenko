@@ -3,13 +3,25 @@ module.exports = async () => {
   const pool = globalThis.__E2E_POOL__;
   const container = globalThis.__E2E_CONTAINER__;
 
-  if (server) {
-    await new Promise((resolve) => server.close(resolve));
+  try {
+    if (server) {
+      await new Promise((resolve) => server.close(resolve));
+    }
+  } catch (_err) {
+    /* ignore */
   }
-  if (pool) {
-    await pool.end();
+  try {
+    if (pool) {
+      await pool.end();
+    }
+  } catch (_err) {
+    /* ignore */
   }
-  if (container) {
-    await container.stop();
+  try {
+    if (container) {
+      await container.stop();
+    }
+  } catch (_err) {
+    /* ignore */
   }
 };

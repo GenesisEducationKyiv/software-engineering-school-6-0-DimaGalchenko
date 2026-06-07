@@ -37,17 +37,25 @@ module.exports = async () => {
   const app = createApp(subscriptionService);
 
   app.get("/__test__/tokens", async (req, res) => {
-    const { email } = req.query;
-    const result = await pool.query(
-      "SELECT repo, confirm_token, unsubscribe_token, confirmed FROM subscriptions WHERE email = $1",
-      [email],
-    );
-    res.json(result.rows);
+    try {
+      const { email } = req.query;
+      const result = await pool.query(
+        "SELECT repo, confirm_token, unsubscribe_token, confirmed FROM subscriptions WHERE email = $1",
+        [email],
+      );
+      res.json(result.rows);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
   });
 
   app.post("/__test__/reset", async (_req, res) => {
-    await pool.query("TRUNCATE subscriptions RESTART IDENTITY CASCADE");
-    res.json({ ok: true });
+    try {
+      await pool.query("TRUNCATE subscriptions RESTART IDENTITY CASCADE");
+      res.json({ ok: true });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
   });
 
   const server = await new Promise((resolve) => {

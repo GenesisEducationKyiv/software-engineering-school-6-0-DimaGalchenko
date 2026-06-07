@@ -3,7 +3,8 @@ const { test, expect } = require("@playwright/test");
 const BASE = "http://localhost:3001";
 
 test.beforeEach(async () => {
-  await fetch(`${BASE}/__test__/reset`, { method: "POST" });
+  const res = await fetch(`${BASE}/__test__/reset`, { method: "POST" });
+  expect(res.ok).toBeTruthy();
 });
 
 async function getTokens(email) {
@@ -66,12 +67,14 @@ test.describe("Index page - My Subscriptions tab", () => {
   });
 
   test("lookup shows confirmed subscriptions", async ({ page }) => {
-    await fetch(`${BASE}/api/subscribe`, {
+    const subRes = await fetch(`${BASE}/api/subscribe`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email: "e2e@example.com", repo: "owner/repo" }),
     });
+    expect(subRes.ok).toBeTruthy();
     const tokens = await getTokens("e2e@example.com");
+    expect(tokens.length).toBeGreaterThan(0);
     await fetch(`${BASE}/api/confirm/${tokens[0].confirm_token}`);
 
     await page.goto("/");
@@ -95,7 +98,7 @@ test.describe("Confirm page", () => {
   });
 
   test("valid token shows success", async ({ page }) => {
-    await fetch(`${BASE}/api/subscribe`, {
+    const subRes = await fetch(`${BASE}/api/subscribe`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -103,7 +106,9 @@ test.describe("Confirm page", () => {
         repo: "owner/repo",
       }),
     });
+    expect(subRes.ok).toBeTruthy();
     const tokens = await getTokens("confirm@example.com");
+    expect(tokens.length).toBeGreaterThan(0);
 
     await page.goto(`/confirm/${tokens[0].confirm_token}`);
 
@@ -121,7 +126,7 @@ test.describe("Unsubscribe page", () => {
   });
 
   test("valid token shows success", async ({ page }) => {
-    await fetch(`${BASE}/api/subscribe`, {
+    const subRes = await fetch(`${BASE}/api/subscribe`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -129,7 +134,9 @@ test.describe("Unsubscribe page", () => {
         repo: "owner/repo",
       }),
     });
+    expect(subRes.ok).toBeTruthy();
     const tokens = await getTokens("unsub@example.com");
+    expect(tokens.length).toBeGreaterThan(0);
 
     await page.goto(`/unsubscribe/${tokens[0].unsubscribe_token}`);
 

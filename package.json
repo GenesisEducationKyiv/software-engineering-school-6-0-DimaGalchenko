@@ -4,10 +4,10 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "test": "jest --testPathIgnorePatterns=integration e2e --verbose",
-    "test:unit": "jest --testPathIgnorePatterns=integration e2e --verbose",
+    "test": "jest --verbose",
+    "test:unit": "jest --testPathIgnorePatterns=integration --verbose",
     "test:integration": "jest --testPathPatterns=integration --verbose",
-    "test:e2e": "npx playwright test",
+    "test:e2e": "playwright test",
     "test:coverage": "jest --coverage",
     "lint": "eslint .",
     "format:check": "prettier --check .",
