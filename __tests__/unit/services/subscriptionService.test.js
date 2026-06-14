@@ -1,4 +1,9 @@
+const crypto = require("crypto");
 const createSubscriptionService = require("../../../services/subscriptionService");
+
+const VALID_TOKEN = "550e8400-e29b-41d4-a716-446655440000";
+const UNKNOWN_TOKEN = "660e8400-e29b-41d4-a716-446655440000";
+const EXISTING_TOKEN = "770e8400-e29b-41d4-a716-446655440000";
 const {
   ValidationError,
   NotFoundError,
@@ -21,7 +26,7 @@ const createMockDependencies = () => ({
   emailService: {
     sendConfirmation: jest.fn().mockResolvedValue(undefined),
   },
-  generateToken: jest.fn().mockReturnValue("test-token"),
+  generateToken: () => crypto.randomUUID(),
 });
 
 describe("SubscriptionService", () => {
@@ -82,7 +87,7 @@ describe("SubscriptionService", () => {
     it("throws ConflictError when already subscribed and confirmed", async () => {
       deps.subscriptionRepository.findByEmailAndRepo.mockResolvedValue({
         confirmed: true,
-        confirm_token: "token-123",
+        confirm_token: VALID_TOKEN,
       });
 
       await expect(
@@ -93,7 +98,7 @@ describe("SubscriptionService", () => {
     it("resends confirmation when subscription exists but not confirmed", async () => {
       deps.subscriptionRepository.findByEmailAndRepo.mockResolvedValue({
         confirmed: false,
-        confirm_token: "existing-token",
+        confirm_token: EXISTING_TOKEN,
       });
 
       await service.subscribe("user@example.com", "owner/repo");
@@ -101,7 +106,7 @@ describe("SubscriptionService", () => {
       expect(deps.subscriptionRepository.create).not.toHaveBeenCalled();
       expect(deps.emailService.sendConfirmation).toHaveBeenCalledWith(
         "user@example.com",
-        "existing-token",
+        EXISTING_TOKEN,
       );
     });
 
@@ -123,17 +128,17 @@ describe("SubscriptionService", () => {
         confirmed: false,
       });
 
-      await service.confirm("valid-token");
+      await service.confirm(VALID_TOKEN);
 
       expect(deps.subscriptionRepository.confirmByToken).toHaveBeenCalledWith(
-        "valid-token",
+        VALID_TOKEN,
       );
     });
 
     it("throws NotFoundError for unknown token", async () => {
       deps.subscriptionRepository.findByConfirmToken.mockResolvedValue(null);
 
-      await expect(service.confirm("unknown-token")).rejects.toThrow(
+      await expect(service.confirm(UNKNOWN_TOKEN)).rejects.toThrow(
         NotFoundError,
       );
     });
@@ -149,11 +154,11 @@ describe("SubscriptionService", () => {
         id: 1,
       });
 
-      await service.unsubscribe("valid-token");
+      await service.unsubscribe(VALID_TOKEN);
 
       expect(
         deps.subscriptionRepository.deleteByUnsubscribeToken,
-      ).toHaveBeenCalledWith("valid-token");
+      ).toHaveBeenCalledWith(VALID_TOKEN);
     });
 
     it("throws NotFoundError for unknown token", async () => {
@@ -161,7 +166,7 @@ describe("SubscriptionService", () => {
         null,
       );
 
-      await expect(service.unsubscribe("unknown-token")).rejects.toThrow(
+      await expect(service.unsubscribe(UNKNOWN_TOKEN)).rejects.toThrow(
         NotFoundError,
       );
     });

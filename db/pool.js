@@ -1,6 +1,5 @@
 const { Pool } = require("pg");
-const config = require("../config");
 
-const pool = new Pool({ connectionString: config.databaseUrl });
+const createPool = (connectionString) => new Pool({ connectionString });
 
-module.exports = pool;
+module.exports = createPool;
