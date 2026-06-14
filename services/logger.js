@@ -41,7 +41,7 @@ const createLogger = (config = {}) => {
     transports.push(
       new TcpTransport({
         host: config.logstashHost,
-        port: config.logstashPort || 51415,
+        port: config.logstashPort,
       }),
     );
   }
