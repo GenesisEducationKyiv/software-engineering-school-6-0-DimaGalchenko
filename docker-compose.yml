@@ -21,6 +21,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      logstash:
+        condition: service_healthy
     restart: unless-stopped
 
   redis:
@@ -58,7 +60,18 @@ services:
     ports:
       - "9200:9200"
     volumes:
-      - esdata:/var/lib/elasticsearch/data
+      - esdata:/usr/share/elasticsearch/data
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          'curl -s http://localhost:9200/_cluster/health | grep -qE ''"status":"(green|yellow)"''',
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
 
   logstash:
     image: logstash:8.17.0
@@ -67,8 +80,24 @@ services:
     ports:
       - "5044:5044"
       - "51415:51415/tcp"
+    environment:
+      TCP_PORT: 51415
+      ES_HOST: http://elasticsearch:9200
+      ES_INDEX: app-logs
     depends_on:
-      - elasticsearch
+      elasticsearch:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          'curl -s http://localhost:9600 | grep -q ''"status":"green"''',
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
 
   kibana:
     image: kibana:8.17.0
@@ -77,7 +106,19 @@ services:
     environment:
       ELASTICSEARCH_HOSTS: http://elasticsearch:9200
     depends_on:
-      - elasticsearch
+      elasticsearch:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -s http://localhost:5601/api/status | grep -q 'available'",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
 
   prometheus:
     image: prom/prometheus:v3.4.0
@@ -85,6 +126,7 @@ services:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
     ports:
       - "9090:9090"
+    restart: unless-stopped
 
   grafana:
     image: grafana/grafana:12.0.1
@@ -97,6 +139,7 @@ services:
       - ./grafana/dashboards:/var/lib/grafana/dashboards
     depends_on:
       - prometheus
+    restart: unless-stopped
 
 volumes:
   pgdata:
