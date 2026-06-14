@@ -1,6 +1,7 @@
 const nodemailer = require("nodemailer");
 const createNodemailerSender = require("./nodemailerSender");
 const createResendSender = require("./resendSender");
+const createConsoleSender = require("./consoleSender");
 
 const providers = {
   resend: (emailConfig) => createResendSender(emailConfig.resendApiKey),
@@ -14,27 +15,31 @@ const providers = {
     });
     return createNodemailerSender(transporter);
   },
+  console: () => createConsoleSender(),
 };
 
-const validators = {
-  resend: (emailConfig) => {
-    if (!emailConfig.resendApiKey)
-      throw new Error("Resend provider requires RESEND_API_KEY");
-  },
-  nodemailer: (emailConfig) => {
-    if (!emailConfig.user || !emailConfig.pass)
-      throw new Error("Nodemailer provider requires EMAIL_USER and EMAIL_PASS");
-  },
+const resolveProvider = (emailConfig) => {
+  if (emailConfig.provider) return emailConfig.provider;
+  if (emailConfig.resendApiKey) return "resend";
+  if (emailConfig.user && emailConfig.pass) return "nodemailer";
+  return "console";
 };
 
 const createSender = (emailConfig) => {
-  const factory = providers[emailConfig.provider];
+  const provider = resolveProvider(emailConfig);
+  const factory = providers[provider];
 
   if (!factory) {
-    throw new Error(`Unknown email provider: ${emailConfig.provider}`);
+    throw new Error(`Unknown email provider: ${provider}`);
   }
 
-  validators[emailConfig.provider]?.(emailConfig);
+  if (provider !== "console") {
+    console.log(`[email] using provider: ${provider}`);
+  } else {
+    console.warn(
+      "[email] no credentials configured — emails will be logged to console only",
+    );
+  }
 
   return factory(emailConfig);
 };
