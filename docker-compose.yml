@@ -32,7 +32,7 @@ services:
     environment:
       PORT: 3001
       GRPC_PORT: 50052
-      EMAIL_PROVIDER: ${EMAIL_PROVIDER:-nodemailer}
+      EMAIL_PROVIDER: ${EMAIL_PROVIDER:-}
       EMAIL_USER: ${EMAIL_USER:-}
       EMAIL_PASS: ${EMAIL_PASS:-}
       EMAIL_FROM: ${EMAIL_FROM:-}
