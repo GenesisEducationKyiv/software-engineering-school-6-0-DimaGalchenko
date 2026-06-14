@@ -3,11 +3,11 @@ const { Pool } = require("pg");
 const runMigrations = require("../db/migrate");
 const createSubscriptionRepository = require("../repositories/subscriptionRepository");
 const createSubscriptionService = require("../services/subscriptionService");
-const { generateToken } = require("../services/tokenService");
 const createApp = require("../app");
 
 module.exports = async () => {
   const container = await new PostgreSqlContainer("postgres:16-alpine").start();
+  globalThis.__E2E_CONTAINER__ = container;
 
   const pool = new Pool({
     host: container.getHost(),
@@ -16,6 +16,8 @@ module.exports = async () => {
     user: container.getUsername(),
     password: container.getPassword(),
   });
+
+  globalThis.__E2E_POOL__ = pool;
 
   await pool.query("SELECT 1");
   await runMigrations(pool);
@@ -34,7 +36,6 @@ module.exports = async () => {
     subscriptionRepository,
     githubService,
     emailService,
-    generateToken,
   });
 
   const app = createApp(subscriptionService);
@@ -64,8 +65,5 @@ module.exports = async () => {
   const server = await new Promise((resolve) => {
     const s = app.listen(3001, () => resolve(s));
   });
-
   globalThis.__E2E_SERVER__ = server;
-  globalThis.__E2E_POOL__ = pool;
-  globalThis.__E2E_CONTAINER__ = container;
 };

@@ -1,6 +1,6 @@
 # Testing
 
-Requires **Node.js >= 18** and **Docker** (for integration/E2E tests via Testcontainers).
+Requires **Node.js >= 18** and **Docker** (for integration/E2E tests via Testcontainers). The Docker daemon must be running before executing `test:integration` or `test:e2e` — Testcontainers will fail with a cryptic error if it isn't.
 
 ## Commands
 
