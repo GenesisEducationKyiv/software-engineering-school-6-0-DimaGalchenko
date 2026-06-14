@@ -5,7 +5,9 @@
   "scripts": {
     "start": "node index.js",
     "test": "jest --verbose",
+    "test:unit": "jest --testPathPatterns=unit --verbose",
     "test:integration": "jest --testPathPatterns=integration --verbose",
+    "test:e2e": "playwright test",
     "test:coverage": "jest --coverage",
     "lint": "eslint .",
     "format:check": "prettier --check .",
@@ -35,11 +37,13 @@
   "jest": {
     "testPathIgnorePatterns": [
       "/node_modules/",
-      "__tests__/integration/setup/"
+      "__tests__/integration/setup/",
+      "/e2e/"
     ]
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.59.1",
     "@testcontainers/postgresql": "^11.13.0",
     "eslint": "^10.1.0",
     "eslint-config-prettier": "^10.1.0",

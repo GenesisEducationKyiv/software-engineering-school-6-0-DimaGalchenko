@@ -13,10 +13,10 @@ const createEmailService = require("./services/emailService");
 const createEmailLinkBuilder = require("./services/emailLinkBuilder");
 const createSender = require("./services/senders/senderFactory");
 const createSubscriptionService = require("./services/subscriptionService");
+const { generateToken } = require("./services/tokenService");
 const createScannerService = require("./services/scannerService");
 const createSchedulerService = require("./services/schedulerService");
 const createLogger = require("./services/logger");
-const { generateToken } = require("./services/tokenService");
 const createApp = require("./app");
 const createGrpcServer = require("./grpc/server");
 
