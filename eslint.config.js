@@ -68,4 +68,12 @@ module.exports = [
       },
     },
   },
+  {
+    files: ["e2e/**/*.js"],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+      },
+    },
+  },
 ];
