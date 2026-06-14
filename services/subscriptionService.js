@@ -3,7 +3,6 @@ const {
   NotFoundError,
   ConflictError,
 } = require("../utils/errors");
-const { generateToken } = require("./tokenService");
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const REPO_REGEX = /^[a-zA-Z0-9._-]+\/[a-zA-Z0-9._-]+$/;
@@ -12,6 +11,7 @@ const createSubscriptionService = ({
   subscriptionRepository,
   githubService,
   emailService,
+  generateToken,
 }) => {
   const validateSubscribeInput = (email, repo) => {
     if (!email || !EMAIL_REGEX.test(email)) {

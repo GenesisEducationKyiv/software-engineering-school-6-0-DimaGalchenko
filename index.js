@@ -14,6 +14,7 @@ const createEmailService = require("./services/emailService");
 const createNodemailerSender = require("./services/senders/nodemailerSender");
 const createResendSender = require("./services/senders/resendSender");
 const createSubscriptionService = require("./services/subscriptionService");
+const { generateToken } = require("./services/tokenService");
 const createScannerService = require("./services/scannerService");
 const createApp = require("./app");
 const createGrpcServer = require("./grpc/server");
@@ -60,6 +61,7 @@ const start = async () => {
     subscriptionRepository,
     githubService,
     emailService,
+    generateToken,
   });
 
   const scannerService = createScannerService({

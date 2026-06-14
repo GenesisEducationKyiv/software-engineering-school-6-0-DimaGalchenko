@@ -21,6 +21,7 @@ const createMockDependencies = () => ({
   emailService: {
     sendConfirmation: jest.fn().mockResolvedValue(undefined),
   },
+  generateToken: jest.fn().mockReturnValue("test-token"),
 });
 
 describe("SubscriptionService", () => {
