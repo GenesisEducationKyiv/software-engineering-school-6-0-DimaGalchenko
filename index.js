@@ -19,7 +19,7 @@ const {
   createScannerService,
   createSchedulerService,
 } = require("./modules/release");
-const { createNotificationClient } = require("./modules/notification");
+const { createNotificationClient } = require("./clients/notification");
 const createApp = require("./app");
 
 const start = async () => {

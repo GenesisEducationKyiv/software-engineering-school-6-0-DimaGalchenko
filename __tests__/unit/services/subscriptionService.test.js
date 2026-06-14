@@ -24,7 +24,7 @@ const createMockDependencies = () => ({
     validateRepository: jest.fn().mockResolvedValue(true),
   },
   notificationClient: {
-    sendConfirmation: jest.fn().mockResolvedValue(undefined),
+    send: jest.fn().mockResolvedValue(undefined),
   },
   generateToken: () => crypto.randomUUID(),
 });
@@ -54,9 +54,9 @@ describe("SubscriptionService", () => {
           repo: "owner/repo",
         }),
       );
-      expect(deps.notificationClient.sendConfirmation).toHaveBeenCalledWith(
-        "user@example.com",
-        expect.any(String),
+      expect(deps.notificationClient.send).toHaveBeenCalledWith(
+        "confirmation",
+        { email: "user@example.com", confirmToken: expect.any(String) },
       );
     });
 
@@ -104,9 +104,9 @@ describe("SubscriptionService", () => {
       await service.subscribe("user@example.com", "owner/repo");
 
       expect(deps.subscriptionRepository.create).not.toHaveBeenCalled();
-      expect(deps.notificationClient.sendConfirmation).toHaveBeenCalledWith(
-        "user@example.com",
-        EXISTING_TOKEN,
+      expect(deps.notificationClient.send).toHaveBeenCalledWith(
+        "confirmation",
+        { email: "user@example.com", confirmToken: EXISTING_TOKEN },
       );
     });
 

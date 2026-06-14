@@ -1,4 +1,4 @@
-const createHttpNotificationClient = require("../../../modules/notification/httpNotificationClient");
+const createHttpNotificationClient = require("../../../clients/notification/httpNotificationClient");
 
 describe("HttpNotificationClient", () => {
   let client;
@@ -14,23 +14,26 @@ describe("HttpNotificationClient", () => {
     global.fetch = originalFetch;
   });
 
-  describe("sendConfirmation", () => {
-    it("sends POST request to confirmation endpoint", async () => {
+  describe("send", () => {
+    it("sends POST to /api/notifications/send with templateId and data", async () => {
       global.fetch.mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({ success: true }),
       });
 
-      await client.sendConfirmation("user@example.com", "token-123");
+      await client.send("confirmation", {
+        email: "user@example.com",
+        confirmToken: "token-123",
+      });
 
       expect(global.fetch).toHaveBeenCalledWith(
-        "http://localhost:3001/api/notifications/confirmation",
+        "http://localhost:3001/api/notifications/send",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            email: "user@example.com",
-            confirmToken: "token-123",
+            templateId: "confirmation",
+            data: { email: "user@example.com", confirmToken: "token-123" },
           }),
         },
       );
@@ -44,40 +47,11 @@ describe("HttpNotificationClient", () => {
       });
 
       await expect(
-        client.sendConfirmation("user@example.com", "token-123"),
+        client.send("confirmation", {
+          email: "user@example.com",
+          confirmToken: "token-123",
+        }),
       ).rejects.toThrow("Server error");
-    });
-  });
-
-  describe("sendReleaseNotification", () => {
-    it("sends POST request to release endpoint", async () => {
-      global.fetch.mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve({ success: true }),
-      });
-
-      await client.sendReleaseNotification(
-        "user@example.com",
-        "owner/repo",
-        "v1.0.0",
-        "https://github.com/owner/repo/releases/tag/v1.0.0",
-        "unsub-token",
-      );
-
-      expect(global.fetch).toHaveBeenCalledWith(
-        "http://localhost:3001/api/notifications/release",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            email: "user@example.com",
-            repo: "owner/repo",
-            tagName: "v1.0.0",
-            htmlUrl: "https://github.com/owner/repo/releases/tag/v1.0.0",
-            unsubscribeToken: "unsub-token",
-          }),
-        },
-      );
     });
   });
 });

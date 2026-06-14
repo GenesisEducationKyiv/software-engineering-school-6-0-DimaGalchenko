@@ -13,7 +13,7 @@ const buildApp = (pool) => {
   };
 
   const notificationClient = {
-    sendConfirmation: jest.fn().mockResolvedValue(undefined),
+    send: jest.fn().mockResolvedValue(undefined),
   };
 
   const subscriptionService = createSubscriptionService({

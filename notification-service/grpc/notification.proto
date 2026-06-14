@@ -1,23 +1,16 @@
 syntax = "proto3";
 
+import "google/protobuf/struct.proto";
+
 package notification;
 
 service NotificationService {
-  rpc SendConfirmation (SendConfirmationRequest) returns (SendResponse);
-  rpc SendReleaseNotification (SendReleaseNotificationRequest) returns (SendResponse);
+  rpc Send (SendRequest) returns (SendResponse);
 }
 
-message SendConfirmationRequest {
-  string email = 1;
-  string confirm_token = 2;
-}
-
-message SendReleaseNotificationRequest {
-  string email = 1;
-  string repo = 2;
-  string tag_name = 3;
-  string html_url = 4;
-  string unsubscribe_token = 5;
+message SendRequest {
+  string template_id = 1;
+  google.protobuf.Struct data = 2;
 }
 
 message SendResponse {

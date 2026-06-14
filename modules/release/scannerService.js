@@ -23,13 +23,13 @@ const createScannerService = ({
 
       for (const release of missed) {
         try {
-          await notificationClient.sendReleaseNotification(
-            subscriber.email,
+          await notificationClient.send("release", {
+            email: subscriber.email,
             repo,
-            release.tagName,
-            release.htmlUrl,
-            subscriber.unsubscribe_token,
-          );
+            tagName: release.tagName,
+            htmlUrl: release.htmlUrl,
+            unsubscribeToken: subscriber.unsubscribe_token,
+          });
         } catch (err) {
           logger.error(
             `Failed to notify ${subscriber.email} for ${repo}: ${err.message}`,

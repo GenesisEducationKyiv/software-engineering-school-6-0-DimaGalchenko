@@ -1,39 +1,21 @@
-const {
-  renderConfirmationEmail,
-  renderReleaseNotificationEmail,
-} = require("./emailTemplates");
+const { templates } = require("../templates");
+const { render } = require("../templates/render");
 
 const createEmailService = ({ sender, emailFrom, linkBuilder }) => {
-  const sendConfirmation = async (email, confirmToken) => {
-    await sender.send({
-      from: emailFrom,
-      to: email,
-      subject: "Confirm your subscription",
-      html: renderConfirmationEmail(linkBuilder.confirmUrl(confirmToken)),
-    });
+  const send = async (templateId, email, rawData) => {
+    const template = templates[templateId];
+    if (!template) {
+      throw new Error(`Unknown template: ${templateId}`);
+    }
+    const vars = template.enrich
+      ? template.enrich(rawData, linkBuilder)
+      : rawData;
+    const subject = render(template.subject, vars);
+    const html = render(template.html, vars);
+    await sender.send({ from: emailFrom, to: email, subject, html });
   };
 
-  const sendReleaseNotification = async (
-    email,
-    repo,
-    tagName,
-    htmlUrl,
-    unsubscribeToken,
-  ) => {
-    await sender.send({
-      from: emailFrom,
-      to: email,
-      subject: `New release ${tagName} for ${repo}`,
-      html: renderReleaseNotificationEmail({
-        repo,
-        tagName,
-        htmlUrl,
-        unsubscribeUrl: linkBuilder.unsubscribeUrl(unsubscribeToken),
-      }),
-    });
-  };
-
-  return { sendConfirmation, sendReleaseNotification };
+  return { send };
 };
 
 module.exports = createEmailService;

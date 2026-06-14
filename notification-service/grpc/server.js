@@ -16,34 +16,11 @@ const createGrpcServer = (emailService) => {
   const proto = grpc.loadPackageDefinition(packageDefinition).notification;
 
   const handlers = {
-    SendConfirmation: async (call, callback) => {
+    Send: async (call, callback) => {
       try {
-        await emailService.sendConfirmation(
-          call.request.email,
-          call.request.confirm_token,
-        );
-        callback(null, { success: true, message: "Confirmation email sent" });
-      } catch (err) {
-        callback({
-          code: grpc.status.INTERNAL,
-          message: err.message,
-        });
-      }
-    },
-
-    SendReleaseNotification: async (call, callback) => {
-      try {
-        await emailService.sendReleaseNotification(
-          call.request.email,
-          call.request.repo,
-          call.request.tag_name,
-          call.request.html_url,
-          call.request.unsubscribe_token,
-        );
-        callback(null, {
-          success: true,
-          message: "Release notification sent",
-        });
+        const { template_id, data } = call.request;
+        await emailService.send(template_id, data.email, data);
+        callback(null, { success: true, message: "Notification sent" });
       } catch (err) {
         callback({
           code: grpc.status.INTERNAL,

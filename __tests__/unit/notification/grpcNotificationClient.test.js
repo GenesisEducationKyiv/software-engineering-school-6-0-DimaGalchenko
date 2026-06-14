@@ -1,7 +1,7 @@
 const path = require("path");
 const grpc = require("@grpc/grpc-js");
 const protoLoader = require("@grpc/proto-loader");
-const createGrpcNotificationClient = require("../../../modules/notification/grpcNotificationClient");
+const createGrpcNotificationClient = require("../../../clients/notification/grpcNotificationClient");
 
 const PROTO_PATH = path.join(
   __dirname,
@@ -40,10 +40,7 @@ describe("GrpcNotificationClient", () => {
   let client;
   const port = 50098;
   const mockHandlers = {
-    SendConfirmation: jest.fn((_call, callback) => {
-      callback(null, { success: true, message: "Sent" });
-    }),
-    SendReleaseNotification: jest.fn((_call, callback) => {
+    Send: jest.fn((_call, callback) => {
       callback(null, { success: true, message: "Sent" });
     }),
   };
@@ -59,30 +56,15 @@ describe("GrpcNotificationClient", () => {
     });
   });
 
-  describe("sendConfirmation", () => {
-    it("calls gRPC SendConfirmation", async () => {
-      const result = await client.sendConfirmation(
-        "user@example.com",
-        "token-123",
-      );
+  describe("send", () => {
+    it("calls gRPC Send with templateId and data", async () => {
+      const result = await client.send("confirmation", {
+        email: "user@example.com",
+        confirmToken: "token-123",
+      });
 
       expect(result.success).toBe(true);
-      expect(mockHandlers.SendConfirmation).toHaveBeenCalled();
-    });
-  });
-
-  describe("sendReleaseNotification", () => {
-    it("calls gRPC SendReleaseNotification", async () => {
-      const result = await client.sendReleaseNotification(
-        "user@example.com",
-        "owner/repo",
-        "v1.0.0",
-        "https://github.com/owner/repo/releases/tag/v1.0.0",
-        "unsub-token",
-      );
-
-      expect(result.success).toBe(true);
-      expect(mockHandlers.SendReleaseNotification).toHaveBeenCalled();
+      expect(mockHandlers.Send).toHaveBeenCalled();
     });
   });
 });

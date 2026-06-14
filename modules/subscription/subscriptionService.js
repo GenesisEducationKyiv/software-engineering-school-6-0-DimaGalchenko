@@ -27,7 +27,10 @@ const createSubscriptionService = ({
     }
 
     if (existing && !existing.confirmed) {
-      await notificationClient.sendConfirmation(email, existing.confirm_token);
+      await notificationClient.send("confirmation", {
+        email,
+        confirmToken: existing.confirm_token,
+      });
       return;
     }
 
@@ -40,7 +43,7 @@ const createSubscriptionService = ({
       confirmToken,
       unsubscribeToken,
     });
-    await notificationClient.sendConfirmation(email, confirmToken);
+    await notificationClient.send("confirmation", { email, confirmToken });
   };
 
   const confirm = async (token) => {

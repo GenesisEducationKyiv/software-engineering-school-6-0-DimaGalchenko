@@ -16,27 +16,11 @@ const createHttpNotificationClient = (baseUrl) => {
     return response.json();
   };
 
-  const sendConfirmation = async (email, confirmToken) => {
-    await post("/api/notifications/confirmation", { email, confirmToken });
+  const send = async (templateId, data) => {
+    await post("/api/notifications/send", { templateId, data });
   };
 
-  const sendReleaseNotification = async (
-    email,
-    repo,
-    tagName,
-    htmlUrl,
-    unsubscribeToken,
-  ) => {
-    await post("/api/notifications/release", {
-      email,
-      repo,
-      tagName,
-      htmlUrl,
-      unsubscribeToken,
-    });
-  };
-
-  return { sendConfirmation, sendReleaseNotification };
+  return { send };
 };
 
 module.exports = createHttpNotificationClient;
