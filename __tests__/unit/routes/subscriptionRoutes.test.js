@@ -1,6 +1,5 @@
 const request = require("supertest");
 const createApp = require("../../../app");
-const createLogger = require("../../../services/logger");
 const {
   NotFoundError,
   ConflictError,
@@ -21,7 +20,11 @@ describe("Subscription Routes", () => {
 
   beforeEach(() => {
     mockService = createMockSubscriptionService();
-    app = createApp(mockService, "", createLogger());
+    app = createApp(mockService, undefined, {
+      info: () => {},
+      warn: () => {},
+      error: () => {},
+    });
   });
 
   describe("POST /api/subscribe", () => {
