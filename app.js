@@ -4,29 +4,14 @@ const createRoutes = require("./routes");
 const createErrorHandler = require("./middleware/errorHandler");
 const createAuthMiddleware = require("./middleware/authMiddleware");
 const {
-  metricsMiddleware,
+  createRequestMiddleware,
   register,
 } = require("./middleware/metricsMiddleware");
 
 const createApp = (subscriptionService, apiKey, logger) => {
   const app = express();
 
-  app.use(metricsMiddleware);
-  app.use((req, res, next) => {
-    const start = Date.now();
-
-    res.on("finish", () => {
-      logger.info("HTTP request", {
-        method: req.method,
-        url: req.originalUrl,
-        statusCode: res.statusCode,
-        duration: Date.now() - start,
-        ip: req.ip,
-      });
-    });
-
-    next();
-  });
+  app.use(createRequestMiddleware(logger));
 
   app.get("/metrics", async (req, res) => {
     res.set("Content-Type", register.contentType);

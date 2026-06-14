@@ -33,8 +33,9 @@ const normalizeRoute = (req) => {
   return req.path;
 };
 
-const metricsMiddleware = (req, res, next) => {
+const createRequestMiddleware = (logger) => (req, res, next) => {
   const end = httpRequestDuration.startTimer();
+  const start = Date.now();
 
   res.on("finish", () => {
     const route = normalizeRoute(req);
@@ -48,9 +49,19 @@ const metricsMiddleware = (req, res, next) => {
     if (res.statusCode >= 400) {
       httpErrorsTotal.inc(labels);
     }
+
+    if (logger && req.path !== "/metrics") {
+      logger.info("HTTP request", {
+        method: req.method,
+        url: req.originalUrl,
+        statusCode: res.statusCode,
+        duration: Date.now() - start,
+        ip: req.ip,
+      });
+    }
   });
 
   next();
 };
 
-module.exports = { metricsMiddleware, register };
+module.exports = { createRequestMiddleware, register };
