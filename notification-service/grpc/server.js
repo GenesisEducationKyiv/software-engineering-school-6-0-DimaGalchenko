@@ -18,8 +18,8 @@ const createGrpcServer = (emailService) => {
   const handlers = {
     Send: async (call, callback) => {
       try {
-        const { template_id, data } = call.request;
-        await emailService.send(template_id, data.email, data);
+        const { template_id, email, data } = call.request;
+        await emailService.send(template_id, email, { ...data, email });
         callback(null, { success: true, message: "Notification sent" });
       } catch (err) {
         callback({

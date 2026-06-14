@@ -10,7 +10,8 @@ service NotificationService {
 
 message SendRequest {
   string template_id = 1;
-  google.protobuf.Struct data = 2;
+  string email = 2;
+  google.protobuf.Struct data = 3;
 }
 
 message SendResponse {

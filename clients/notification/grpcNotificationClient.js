@@ -28,12 +28,15 @@ const createGrpcNotificationClient = (grpcUrl) => {
 
   const send = (templateId, data) =>
     new Promise((resolve, reject) => {
-      client.Send({ template_id: templateId, data }, (err, response) => {
-        if (err) {
-          return reject(new Error(err.message));
-        }
-        return resolve(response);
-      });
+      client.Send(
+        { template_id: templateId, email: data.email, data },
+        (err, response) => {
+          if (err) {
+            return reject(new Error(err.message));
+          }
+          return resolve(response);
+        },
+      );
     });
 
   return { send };
