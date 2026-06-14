@@ -1,5 +1,5 @@
-const createScannerService = require("../../../services/scannerService");
-const { RateLimitError } = require("../../../utils/errors");
+const createScannerService = require("../../../modules/release/scannerService");
+const { RateLimitError } = require("../../../shared/errors");
 
 const createMockDependencies = () => ({
   subscriptionRepository: {
@@ -10,7 +10,7 @@ const createMockDependencies = () => ({
   githubService: {
     fetchReleases: jest.fn(),
   },
-  emailService: {
+  notificationClient: {
     sendReleaseNotification: jest.fn().mockResolvedValue(undefined),
   },
   logger: {
@@ -84,7 +84,9 @@ describe("ScannerService", () => {
 
       await scanner.scan();
 
-      expect(deps.emailService.sendReleaseNotification).toHaveBeenCalledWith(
+      expect(
+        deps.notificationClient.sendReleaseNotification,
+      ).toHaveBeenCalledWith(
         "user@example.com",
         "owner/repo",
         "v2.0.0",
@@ -115,10 +117,12 @@ describe("ScannerService", () => {
 
       await scanner.scan();
 
-      expect(deps.emailService.sendReleaseNotification).toHaveBeenCalledTimes(
-        1,
-      );
-      expect(deps.emailService.sendReleaseNotification).toHaveBeenCalledWith(
+      expect(
+        deps.notificationClient.sendReleaseNotification,
+      ).toHaveBeenCalledTimes(1);
+      expect(
+        deps.notificationClient.sendReleaseNotification,
+      ).toHaveBeenCalledWith(
         "user@example.com",
         "owner/repo",
         "v2.0.0",
@@ -147,7 +151,9 @@ describe("ScannerService", () => {
 
       await scanner.scan();
 
-      expect(deps.emailService.sendReleaseNotification).not.toHaveBeenCalled();
+      expect(
+        deps.notificationClient.sendReleaseNotification,
+      ).not.toHaveBeenCalled();
     });
 
     it("stops scanning on rate limit error", async () => {
@@ -200,15 +206,15 @@ describe("ScannerService", () => {
           unsubscribe_token: "unsub-2",
         },
       ]);
-      deps.emailService.sendReleaseNotification
+      deps.notificationClient.sendReleaseNotification
         .mockRejectedValueOnce(new Error("SMTP error"))
         .mockResolvedValueOnce(undefined);
 
       await scanner.scan();
 
-      expect(deps.emailService.sendReleaseNotification).toHaveBeenCalledTimes(
-        2,
-      );
+      expect(
+        deps.notificationClient.sendReleaseNotification,
+      ).toHaveBeenCalledTimes(2);
       expect(
         deps.subscriptionRepository.updateLastSeenTagById,
       ).toHaveBeenCalledWith(2, "v2.0.0");
@@ -258,10 +264,12 @@ describe("ScannerService", () => {
 
       await scanner.scan();
 
-      expect(deps.emailService.sendReleaseNotification).toHaveBeenCalledTimes(
-        2,
-      );
-      expect(deps.emailService.sendReleaseNotification).toHaveBeenNthCalledWith(
+      expect(
+        deps.notificationClient.sendReleaseNotification,
+      ).toHaveBeenCalledTimes(2);
+      expect(
+        deps.notificationClient.sendReleaseNotification,
+      ).toHaveBeenNthCalledWith(
         1,
         "user@example.com",
         "owner/repo",
@@ -269,7 +277,9 @@ describe("ScannerService", () => {
         "url-v2",
         "unsub-1",
       );
-      expect(deps.emailService.sendReleaseNotification).toHaveBeenNthCalledWith(
+      expect(
+        deps.notificationClient.sendReleaseNotification,
+      ).toHaveBeenNthCalledWith(
         2,
         "user@example.com",
         "owner/repo",

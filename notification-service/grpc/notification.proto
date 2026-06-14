@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package notification;
+
+service NotificationService {
+  rpc SendConfirmation (SendConfirmationRequest) returns (SendResponse);
+  rpc SendReleaseNotification (SendReleaseNotificationRequest) returns (SendResponse);
+}
+
+message SendConfirmationRequest {
+  string email = 1;
+  string confirm_token = 2;
+}
+
+message SendReleaseNotificationRequest {
+  string email = 1;
+  string repo = 2;
+  string tag_name = 3;
+  string html_url = 4;
+  string unsubscribe_token = 5;
+}
+
+message SendResponse {
+  bool success = 1;
+  string message = 2;
+}

@@ -1,10 +1,10 @@
-const { RateLimitError } = require("../utils/errors");
+const { RateLimitError } = require("../../shared/errors");
 const { getMissedReleases } = require("./releaseComparer");
 
 const createScannerService = ({
   subscriptionRepository,
   githubService,
-  emailService,
+  notificationClient,
   logger,
 }) => {
   let scanning = false;
@@ -23,7 +23,7 @@ const createScannerService = ({
 
       for (const release of missed) {
         try {
-          await emailService.sendReleaseNotification(
+          await notificationClient.sendReleaseNotification(
             subscriber.email,
             repo,
             release.tagName,

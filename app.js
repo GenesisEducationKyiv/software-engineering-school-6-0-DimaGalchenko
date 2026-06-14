@@ -1,6 +1,6 @@
 const path = require("path");
 const express = require("express");
-const createRoutes = require("./routes");
+const { createSubscriptionRoutes } = require("./modules/subscription");
 const errorHandler = require("./middleware/errorHandler");
 const createAuthMiddleware = require("./middleware/authMiddleware");
 const {
@@ -32,7 +32,7 @@ const createApp = (subscriptionService, apiKey) => {
   app.use(
     "/api",
     createAuthMiddleware(apiKey),
-    createRoutes(subscriptionService),
+    createSubscriptionRoutes(subscriptionService),
   );
   app.use(errorHandler);
 

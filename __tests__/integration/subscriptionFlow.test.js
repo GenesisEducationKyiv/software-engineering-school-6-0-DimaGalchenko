@@ -5,7 +5,7 @@ const {
   truncateAll,
 } = require("./setup/testDatabase");
 const { buildApp } = require("./setup/testApp");
-const { NotFoundError } = require("../../utils/errors");
+const { NotFoundError } = require("../../shared/errors");
 
 jest.setTimeout(30000);
 
@@ -13,14 +13,14 @@ describe("Subscription Integration", () => {
   let pool;
   let app;
   let githubService;
-  let emailService;
+  let notificationClient;
 
   beforeAll(async () => {
     pool = await startDatabase();
     const built = buildApp(pool);
     app = built.app;
     githubService = built.githubService;
-    emailService = built.emailService;
+    notificationClient = built.notificationClient;
   });
 
   beforeEach(async () => {
@@ -39,7 +39,7 @@ describe("Subscription Integration", () => {
         .send({ email: "test@example.com", repo: "owner/repo" });
 
       expect(res.status).toBe(200);
-      expect(emailService.sendConfirmation).toHaveBeenCalledWith(
+      expect(notificationClient.sendConfirmation).toHaveBeenCalledWith(
         "test@example.com",
         expect.any(String),
       );
@@ -118,14 +118,14 @@ describe("Subscription Integration", () => {
       );
       const originalToken = before[0].confirm_token;
 
-      emailService.sendConfirmation.mockClear();
+      notificationClient.sendConfirmation.mockClear();
 
       const res = await request(app)
         .post("/api/subscribe")
         .send({ email: "test@example.com", repo: "owner/repo" });
 
       expect(res.status).toBe(200);
-      expect(emailService.sendConfirmation).toHaveBeenCalledWith(
+      expect(notificationClient.sendConfirmation).toHaveBeenCalledWith(
         "test@example.com",
         originalToken,
       );

@@ -35,7 +35,8 @@
   "jest": {
     "testPathIgnorePatterns": [
       "/node_modules/",
-      "__tests__/integration/setup/"
+      "__tests__/integration/setup/",
+      "notification-service/"
     ]
   },
   "devDependencies": {

@@ -1,7 +1,7 @@
 const {
   createCacheService,
   createNullCacheService,
-} = require("../../../services/cacheService");
+} = require("../../../shared/cacheService");
 
 const createMockRedis = () => ({
   get: jest.fn(),

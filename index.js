@@ -3,22 +3,24 @@ const Redis = require("ioredis");
 const config = require("./config");
 const createPool = require("./db/pool");
 const runMigrations = require("./db/migrate");
-const createSubscriptionRepository = require("./repositories/subscriptionRepository");
-const createGithubService = require("./services/githubService");
 const {
   createCacheService,
   createNullCacheService,
-} = require("./services/cacheService");
-const createEmailService = require("./services/emailService");
-const createEmailLinkBuilder = require("./services/emailLinkBuilder");
-const createSender = require("./services/senders/senderFactory");
-const createSubscriptionService = require("./services/subscriptionService");
-const createScannerService = require("./services/scannerService");
-const createSchedulerService = require("./services/schedulerService");
-const createLogger = require("./services/logger");
-const { generateToken } = require("./services/tokenService");
+} = require("./shared/cacheService");
+const createLogger = require("./shared/logger");
+const { generateToken } = require("./shared/tokenService");
+const {
+  createSubscriptionService,
+  createSubscriptionRepository,
+  createSubscriptionGrpcServer,
+} = require("./modules/subscription");
+const {
+  createGithubService,
+  createScannerService,
+  createSchedulerService,
+} = require("./modules/release");
+const { createNotificationClient } = require("./modules/notification");
 const createApp = require("./app");
-const createGrpcServer = require("./grpc/server");
 
 const start = async () => {
   const logger = createLogger();
@@ -44,14 +46,7 @@ const start = async () => {
 
   const githubService = createGithubService({ config, cacheService });
 
-  const sender = createSender(config.email);
-  const linkBuilder = createEmailLinkBuilder(config.baseUrl);
-
-  const emailService = createEmailService({
-    sender,
-    emailFrom: config.email.from,
-    linkBuilder,
-  });
+  const notificationClient = createNotificationClient(config);
 
   const subscriptionService = createSubscriptionService({
     subscriptionRepository: {
@@ -65,7 +60,7 @@ const start = async () => {
       findAllByEmail: subscriptionRepository.findAllByEmail,
     },
     githubService,
-    emailService,
+    notificationClient,
     generateToken,
   });
 
@@ -77,7 +72,7 @@ const start = async () => {
       updateLastSeenTagById: subscriptionRepository.updateLastSeenTagById,
     },
     githubService,
-    emailService,
+    notificationClient,
     logger,
   });
 
@@ -90,7 +85,7 @@ const start = async () => {
   const schedulerService = createSchedulerService();
   schedulerService.start(config.scanCron, () => scannerService.scan());
 
-  const grpcServer = createGrpcServer(subscriptionService);
+  const grpcServer = createSubscriptionGrpcServer(subscriptionService);
   grpcServer.start(config.grpcPort);
 
   const shutdown = async () => {
