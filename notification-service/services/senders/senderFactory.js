@@ -16,12 +16,25 @@ const providers = {
   },
 };
 
+const validators = {
+  resend: (emailConfig) => {
+    if (!emailConfig.resendApiKey)
+      throw new Error("Resend provider requires RESEND_API_KEY");
+  },
+  nodemailer: (emailConfig) => {
+    if (!emailConfig.user || !emailConfig.pass)
+      throw new Error("Nodemailer provider requires EMAIL_USER and EMAIL_PASS");
+  },
+};
+
 const createSender = (emailConfig) => {
   const factory = providers[emailConfig.provider];
 
   if (!factory) {
     throw new Error(`Unknown email provider: ${emailConfig.provider}`);
   }
+
+  validators[emailConfig.provider]?.(emailConfig);
 
   return factory(emailConfig);
 };
