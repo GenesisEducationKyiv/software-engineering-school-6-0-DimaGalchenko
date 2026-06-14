@@ -34,11 +34,14 @@ const start = async () => {
       retryStrategy: () => null,
       lazyConnect: true,
     });
-    redisClient.on("error", () => {});
+    redisClient.on("error", (err) => {
+      logger.warn("Redis error", { error: err.message });
+    });
     await redisClient.connect();
     await redisClient.ping();
     cacheService = createCacheService(redisClient, { ttl: config.cacheTtl });
   } catch (_err) {
+    logger.warn("Redis unavailable, running without cache");
     cacheService = createNullCacheService();
   }
 
