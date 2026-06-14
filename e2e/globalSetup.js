@@ -1,9 +1,11 @@
 const { PostgreSqlContainer } = require("@testcontainers/postgresql");
 const { Pool } = require("pg");
 const runMigrations = require("../db/migrate");
-const createSubscriptionRepository = require("../repositories/subscriptionRepository");
-const createSubscriptionService = require("../services/subscriptionService");
-const { generateToken } = require("../services/tokenService");
+const {
+  createSubscriptionRepository,
+  createSubscriptionService,
+} = require("../modules/subscription");
+const { generateToken } = require("../shared/tokenService");
 const createApp = require("../app");
 
 module.exports = async () => {
@@ -29,14 +31,14 @@ module.exports = async () => {
     validateRepository: async () => {},
   };
 
-  const emailService = {
-    sendConfirmation: async () => {},
+  const notificationClient = {
+    send: async () => {},
   };
 
   const subscriptionService = createSubscriptionService({
     subscriptionRepository,
     githubService,
-    emailService,
+    notificationClient,
     generateToken,
   });
 
