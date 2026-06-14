@@ -25,7 +25,7 @@ const getMigrationFiles = () => {
     .sort();
 };
 
-const runMigrations = async (pool, logger) => {
+const runMigrations = async (pool, logger = console) => {
   await ensureMigrationsTable(pool);
 
   const applied = await getAppliedMigrations(pool);
