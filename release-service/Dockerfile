@@ -4,4 +4,4 @@ WORKDIR /app
 
 COPY . .
 
-CMD ["node", "index.js"]
+CMD ["node", "--dns-result-order=ipv4first", "index.js"]
