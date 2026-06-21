@@ -2,6 +2,7 @@ const config = {
   port: parseInt(process.env.PORT, 10) || 3001,
   grpcPort: parseInt(process.env.GRPC_PORT, 10) || 50052,
   baseUrl: process.env.BASE_URL || "http://localhost:3000",
+  kafkaBroker: process.env.KAFKA_BROKER || "localhost:9092",
   email: {
     provider: process.env.EMAIL_PROVIDER || "",
     from: process.env.EMAIL_FROM || process.env.EMAIL_USER || "",

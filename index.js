@@ -16,8 +16,7 @@ const {
 } = require("./modules/subscription");
 const {
   createGithubService,
-  createScannerService,
-  createSchedulerService,
+  createReleaseEventConsumer,
 } = require("./modules/release");
 const { createNotificationClient } = require("./clients/notification");
 const createApp = require("./app");
@@ -46,7 +45,8 @@ const start = async () => {
 
   const githubService = createGithubService({ config, cacheService });
 
-  const notificationClient = createNotificationClient(config);
+  const notificationClient = createNotificationClient(config, logger);
+  await notificationClient.connect();
 
   const subscriptionService = createSubscriptionService({
     subscriptionRepository: {
@@ -64,34 +64,35 @@ const start = async () => {
     generateToken,
   });
 
-  const scannerService = createScannerService({
+  const releaseEventConsumer = createReleaseEventConsumer({
+    kafkaBroker: config.kafkaBroker,
     subscriptionRepository: {
-      findDistinctConfirmedRepos:
-        subscriptionRepository.findDistinctConfirmedRepos,
       findConfirmedByRepo: subscriptionRepository.findConfirmedByRepo,
       updateLastSeenTagById: subscriptionRepository.updateLastSeenTagById,
     },
-    githubService,
     notificationClient,
     logger,
   });
+  await releaseEventConsumer.start();
 
-  const app = createApp(subscriptionService, config.apiKey);
+  const app = createApp(
+    subscriptionService,
+    subscriptionRepository,
+    config.apiKey,
+  );
 
   const server = app.listen(config.port, () => {
     console.log(`Server is running on port ${config.port}`);
   });
 
-  const schedulerService = createSchedulerService();
-  schedulerService.start(config.scanCron, () => scannerService.scan());
-
   const grpcServer = createSubscriptionGrpcServer(subscriptionService);
   grpcServer.start(config.grpcPort);
 
   const shutdown = async () => {
-    schedulerService.stop();
     server.close();
     await grpcServer.stop();
+    await notificationClient.disconnect();
+    await releaseEventConsumer.stop();
     await pool.end();
     process.exit(0);
   };
