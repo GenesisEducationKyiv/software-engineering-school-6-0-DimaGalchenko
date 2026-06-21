@@ -9,7 +9,6 @@ services:
       DATABASE_URL: postgres://postgres:postgres@db:5432/release_notifier
       BASE_URL: http://localhost:3000
       GITHUB_TOKEN: ""
-      SCAN_CRON: "*/1 * * * *"
       REDIS_URL: redis://redis:6379
       API_KEY: ""
       KAFKA_BROKER: kafka:9092
@@ -89,7 +88,7 @@ services:
     restart: unless-stopped
 
   kafka:
-    image: bitnami/kafka:3.7
+    image: bitnami/kafka:latest
     ports:
       - "9092:9092"
     environment:
