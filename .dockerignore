@@ -1,0 +1,6 @@
+.git
+notification-service
+release-service
+__tests__
+*.md
+.env*
