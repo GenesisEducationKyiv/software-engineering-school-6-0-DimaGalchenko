@@ -145,5 +145,3 @@ See [testing.md](testing.md) for full details on running unit, integration, and 
 - **Linting**: ESLint
 - **Testing**: Jest, Supertest, Playwright, Testcontainers
 - **CI**: GitHub Actions (lint + unit/integration/E2E tests)
-
-test
