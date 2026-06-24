@@ -1,0 +1,4 @@
+.git
+__tests__
+*.md
+.env*

@@ -1,5 +1,5 @@
-const createScannerService = require("../../../services/scannerService");
-const { RateLimitError } = require("../../../utils/errors");
+const createScannerService = require("../../../modules/release/scannerService");
+const { RateLimitError } = require("../../../shared/errors");
 
 const createMockDependencies = () => ({
   subscriptionRepository: {
@@ -10,8 +10,8 @@ const createMockDependencies = () => ({
   githubService: {
     fetchReleases: jest.fn(),
   },
-  emailService: {
-    sendReleaseNotification: jest.fn().mockResolvedValue(undefined),
+  notificationClient: {
+    send: jest.fn().mockResolvedValue(undefined),
   },
   logger: {
     info: jest.fn(),
@@ -84,13 +84,13 @@ describe("ScannerService", () => {
 
       await scanner.scan();
 
-      expect(deps.emailService.sendReleaseNotification).toHaveBeenCalledWith(
-        "user@example.com",
-        "owner/repo",
-        "v2.0.0",
-        "https://github.com/owner/repo/releases/tag/v2.0.0",
-        "unsub-1",
-      );
+      expect(deps.notificationClient.send).toHaveBeenCalledWith("release", {
+        email: "user@example.com",
+        repo: "owner/repo",
+        tagName: "v2.0.0",
+        htmlUrl: "https://github.com/owner/repo/releases/tag/v2.0.0",
+        unsubscribeToken: "unsub-1",
+      });
       expect(
         deps.subscriptionRepository.updateLastSeenTagById,
       ).toHaveBeenCalledWith(1, "v2.0.0");
@@ -115,16 +115,14 @@ describe("ScannerService", () => {
 
       await scanner.scan();
 
-      expect(deps.emailService.sendReleaseNotification).toHaveBeenCalledTimes(
-        1,
-      );
-      expect(deps.emailService.sendReleaseNotification).toHaveBeenCalledWith(
-        "user@example.com",
-        "owner/repo",
-        "v2.0.0",
-        "url-v2",
-        "unsub-1",
-      );
+      expect(deps.notificationClient.send).toHaveBeenCalledTimes(1);
+      expect(deps.notificationClient.send).toHaveBeenCalledWith("release", {
+        email: "user@example.com",
+        repo: "owner/repo",
+        tagName: "v2.0.0",
+        htmlUrl: "url-v2",
+        unsubscribeToken: "unsub-1",
+      });
       expect(
         deps.subscriptionRepository.updateLastSeenTagById,
       ).toHaveBeenCalledWith(1, "v2.0.0");
@@ -147,7 +145,7 @@ describe("ScannerService", () => {
 
       await scanner.scan();
 
-      expect(deps.emailService.sendReleaseNotification).not.toHaveBeenCalled();
+      expect(deps.notificationClient.send).not.toHaveBeenCalled();
     });
 
     it("stops scanning on rate limit error", async () => {
@@ -200,15 +198,13 @@ describe("ScannerService", () => {
           unsubscribe_token: "unsub-2",
         },
       ]);
-      deps.emailService.sendReleaseNotification
+      deps.notificationClient.send
         .mockRejectedValueOnce(new Error("SMTP error"))
         .mockResolvedValueOnce(undefined);
 
       await scanner.scan();
 
-      expect(deps.emailService.sendReleaseNotification).toHaveBeenCalledTimes(
-        2,
-      );
+      expect(deps.notificationClient.send).toHaveBeenCalledTimes(2);
       expect(
         deps.subscriptionRepository.updateLastSeenTagById,
       ).toHaveBeenCalledWith(2, "v2.0.0");
@@ -258,24 +254,28 @@ describe("ScannerService", () => {
 
       await scanner.scan();
 
-      expect(deps.emailService.sendReleaseNotification).toHaveBeenCalledTimes(
-        2,
-      );
-      expect(deps.emailService.sendReleaseNotification).toHaveBeenNthCalledWith(
+      expect(deps.notificationClient.send).toHaveBeenCalledTimes(2);
+      expect(deps.notificationClient.send).toHaveBeenNthCalledWith(
         1,
-        "user@example.com",
-        "owner/repo",
-        "v2.0.0",
-        "url-v2",
-        "unsub-1",
+        "release",
+        {
+          email: "user@example.com",
+          repo: "owner/repo",
+          tagName: "v2.0.0",
+          htmlUrl: "url-v2",
+          unsubscribeToken: "unsub-1",
+        },
       );
-      expect(deps.emailService.sendReleaseNotification).toHaveBeenNthCalledWith(
+      expect(deps.notificationClient.send).toHaveBeenNthCalledWith(
         2,
-        "user@example.com",
-        "owner/repo",
-        "v3.0.0",
-        "url-v3",
-        "unsub-1",
+        "release",
+        {
+          email: "user@example.com",
+          repo: "owner/repo",
+          tagName: "v3.0.0",
+          htmlUrl: "url-v3",
+          unsubscribeToken: "unsub-1",
+        },
       );
       expect(
         deps.subscriptionRepository.updateLastSeenTagById,

@@ -1,4 +1,4 @@
-const { AppError } = require("../utils/errors");
+const { AppError } = require("../shared/errors");
 
 const errorHandler = (err, req, res, _next) => {
   if (err instanceof AppError) {

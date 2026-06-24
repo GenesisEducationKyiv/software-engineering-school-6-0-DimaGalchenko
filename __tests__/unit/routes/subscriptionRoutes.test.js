@@ -4,7 +4,7 @@ const {
   NotFoundError,
   ConflictError,
   ValidationError,
-} = require("../../../utils/errors");
+} = require("../../../shared/errors");
 
 const createMockSubscriptionService = () => ({
   subscribe: jest.fn().mockResolvedValue(undefined),
