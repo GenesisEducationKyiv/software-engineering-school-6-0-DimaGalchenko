@@ -26,7 +26,12 @@ const createKafkaNotificationClient = ({ kafkaBroker, logger }) => {
       topic: "notifications",
       messages: [
         {
-          value: JSON.stringify({ templateId, email: data.email, data }),
+          value: JSON.stringify({
+            templateId,
+            email: data.email,
+            data,
+            sagaId: data.sagaId,
+          }),
         },
       ],
     });

@@ -61,4 +61,28 @@ describe("KafkaNotificationClient", () => {
     await client.disconnect();
     expect(mockProducerDisconnect).toHaveBeenCalled();
   });
+
+  it("includes sagaId at top level for confirmation commands", async () => {
+    await client.send("confirmation", {
+      email: "a@b.com",
+      confirmToken: "tok",
+      sagaId: 99,
+    });
+
+    const message = mockProducerSend.mock.calls[0][0].messages[0];
+    const parsed = JSON.parse(message.value);
+    expect(parsed.sagaId).toBe(99);
+  });
+
+  it("omits sagaId for release notifications", async () => {
+    await client.send("release", {
+      email: "a@b.com",
+      repo: "o/r",
+      tagName: "v1",
+    });
+
+    const message = mockProducerSend.mock.calls[0][0].messages[0];
+    const parsed = JSON.parse(message.value);
+    expect(parsed.sagaId).toBeUndefined();
+  });
 });
