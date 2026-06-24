@@ -1,11 +1,6 @@
-const createHttpNotificationClient = require("./httpNotificationClient");
-const createGrpcNotificationClient = require("./grpcNotificationClient");
+const createKafkaNotificationClient = require("./kafkaNotificationClient");
 
-const createNotificationClient = (config) => {
-  if (config.notificationTransport === "grpc") {
-    return createGrpcNotificationClient(config.notificationGrpcUrl);
-  }
-  return createHttpNotificationClient(config.notificationHttpUrl);
-};
+const createNotificationClient = (config, logger) =>
+  createKafkaNotificationClient({ kafkaBroker: config.kafkaBroker, logger });
 
 module.exports = { createNotificationClient };
