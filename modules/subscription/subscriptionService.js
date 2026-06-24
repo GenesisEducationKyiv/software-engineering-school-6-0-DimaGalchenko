@@ -8,8 +8,8 @@ const {
 const createSubscriptionService = ({
   subscriptionRepository,
   githubService,
-  notificationClient,
   generateToken,
+  saga,
 }) => {
   const subscribe = async (email, repo) => {
     validateEmail(email);
@@ -27,23 +27,14 @@ const createSubscriptionService = ({
     }
 
     if (existing && !existing.confirmed) {
-      await notificationClient.send("confirmation", {
-        email,
-        confirmToken: existing.confirm_token,
-      });
+      await saga.resend(existing);
       return;
     }
 
     const confirmToken = generateToken();
     const unsubscribeToken = generateToken();
 
-    await subscriptionRepository.create({
-      email,
-      repo,
-      confirmToken,
-      unsubscribeToken,
-    });
-    await notificationClient.send("confirmation", { email, confirmToken });
+    await saga.start(email, repo, confirmToken, unsubscribeToken);
   };
 
   const confirm = async (token) => {
@@ -53,6 +44,12 @@ const createSubscriptionService = ({
 
     if (!subscription) {
       throw new NotFoundError("Token not found");
+    }
+
+    if (subscription.confirmation_email_status === "failed") {
+      throw new ConflictError(
+        "Confirmation email failed for this subscription; cannot confirm",
+      );
     }
 
     await subscriptionRepository.confirmByToken(token);
