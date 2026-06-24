@@ -54,13 +54,14 @@ const createSubscriptionConfirmationSaga = ({
       logger.info(`[saga] subscription ${sagaId} confirmation email sent`);
       return;
     }
+    const reason = error || "email send failed";
     await subscriptionRepository.updateConfirmationStatus(
       sagaId,
       "failed",
-      error || "email send failed",
+      reason,
     );
     logger.error(
-      `[saga] subscription ${sagaId} confirmation email failed: ${error}`,
+      `[saga] subscription ${sagaId} confirmation email failed: ${reason}`,
     );
   };
 
