@@ -56,7 +56,7 @@ const createSubscriptionRepository = (pool) => {
 
   const findAllByEmail = async (email) => {
     const result = await pool.query(
-      "SELECT email, repo, confirmed, last_seen_tag FROM subscriptions WHERE email = $1",
+      "SELECT email, repo, confirmed, last_seen_tag, confirmation_email_status, confirmation_failure_reason FROM subscriptions WHERE email = $1",
       [email],
     );
     return result.rows;
@@ -84,6 +84,13 @@ const createSubscriptionRepository = (pool) => {
     );
   };
 
+  const updateConfirmationStatus = async (id, status, reason = null) => {
+    await pool.query(
+      "UPDATE subscriptions SET confirmation_email_status = $1, confirmation_failure_reason = $2 WHERE id = $3",
+      [status, reason, id],
+    );
+  };
+
   return {
     findByEmailAndRepo,
     create,
@@ -96,6 +103,7 @@ const createSubscriptionRepository = (pool) => {
     findDistinctConfirmedRepos,
     findConfirmedByRepo,
     updateLastSeenTagById,
+    updateConfirmationStatus,
   };
 };
 
