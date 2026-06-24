@@ -3,6 +3,7 @@ const createSubscriptionRepository = require("./subscriptionRepository");
 const createSubscriptionRoutes = require("./routes");
 const createSubscriptionGrpcServer = require("./grpc/server");
 const createInternalRoutes = require("./internalRoutes");
+const createSubscriptionConfirmationSaga = require("./subscriptionConfirmationSaga");
 
 module.exports = {
   createSubscriptionService,
@@ -10,4 +11,5 @@ module.exports = {
   createSubscriptionRoutes,
   createSubscriptionGrpcServer,
   createInternalRoutes,
+  createSubscriptionConfirmationSaga,
 };
