@@ -107,6 +107,7 @@ describe("NotificationConsumer", () => {
       status: "failed",
       error: "SMTP failure",
     });
+    expect(logger.error).toHaveBeenCalled();
   });
 
   it("does not publish a result when sagaId is absent (release notification)", async () => {
@@ -117,6 +118,7 @@ describe("NotificationConsumer", () => {
     });
 
     expect(resultProducer.publishResult).not.toHaveBeenCalled();
+    expect(emailService.send).toHaveBeenCalled();
   });
 
   it("logs and does not throw on invalid JSON", async () => {
