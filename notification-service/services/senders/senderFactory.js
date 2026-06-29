@@ -2,6 +2,7 @@ const nodemailer = require("nodemailer");
 const createNodemailerSender = require("./nodemailerSender");
 const createResendSender = require("./resendSender");
 const createConsoleSender = require("./consoleSender");
+const createFailingSender = require("./failingSender");
 
 const providers = {
   resend: (emailConfig) => createResendSender(emailConfig.resendApiKey),
@@ -16,6 +17,7 @@ const providers = {
     return createNodemailerSender(transporter);
   },
   console: () => createConsoleSender(),
+  failing: () => createFailingSender(),
 };
 
 const resolveProvider = (emailConfig) => {

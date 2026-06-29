@@ -1,6 +1,5 @@
 const createNotificationConsumer = require("../kafka/consumer");
 
-// Mock state shared across mock instances
 let capturedEachMessage;
 const mockConsumerConnect = jest.fn().mockResolvedValue(undefined);
 const mockConsumerSubscribe = jest.fn().mockResolvedValue(undefined);
@@ -25,43 +24,49 @@ const createMockEmailService = () => ({
   send: jest.fn().mockResolvedValue(undefined),
 });
 
-const createMockLogger = () => ({
-  info: jest.fn(),
-  error: jest.fn(),
+const createMockResultProducer = () => ({
+  publishResult: jest.fn().mockResolvedValue(undefined),
 });
+
+const createMockLogger = () => ({ info: jest.fn(), error: jest.fn() });
+
+const deliver = (payload) =>
+  capturedEachMessage({
+    topic: "notifications",
+    message: { value: Buffer.from(JSON.stringify(payload)) },
+  });
 
 describe("NotificationConsumer", () => {
   let emailService;
+  let resultProducer;
   let logger;
 
   beforeEach(async () => {
     jest.clearAllMocks();
     capturedEachMessage = undefined;
-    // Re-setup mockConsumerRun to capture the new callback
     mockConsumerRun.mockImplementation(({ eachMessage }) => {
       capturedEachMessage = eachMessage;
       return Promise.resolve();
     });
 
     emailService = createMockEmailService();
+    resultProducer = createMockResultProducer();
     logger = createMockLogger();
     const consumer = createNotificationConsumer({
       emailService,
+      resultProducer,
       kafkaBroker: "localhost:9092",
       logger,
     });
     await consumer.start();
   });
 
-  it("sends confirmation email when confirmation message arrives", async () => {
-    const payload = {
+  it("sends the email for a confirmation message", async () => {
+    await deliver({
       templateId: "confirmation",
       email: "user@example.com",
       data: { email: "user@example.com", confirmToken: "tok-123" },
-    };
-    await capturedEachMessage({
-      topic: "notifications",
-      message: { value: Buffer.from(JSON.stringify(payload)) },
+      sagaId: 1,
     });
 
     expect(emailService.send).toHaveBeenCalledWith(
@@ -71,57 +76,57 @@ describe("NotificationConsumer", () => {
     );
   });
 
-  it("sends release email when release message arrives", async () => {
-    const payload = {
-      templateId: "release",
+  it("publishes a 'sent' result when sagaId is present and send succeeds", async () => {
+    await deliver({
+      templateId: "confirmation",
       email: "user@example.com",
-      data: {
-        email: "user@example.com",
-        repo: "owner/repo",
-        tagName: "v2.0.0",
-        htmlUrl: "https://github.com/owner/repo/releases/tag/v2.0.0",
-        unsubscribeToken: "unsub-tok",
-      },
-    };
-    await capturedEachMessage({
-      topic: "notifications",
-      message: { value: Buffer.from(JSON.stringify(payload)) },
+      data: { email: "user@example.com", confirmToken: "tok" },
+      sagaId: 42,
     });
 
-    expect(emailService.send).toHaveBeenCalledWith(
-      "release",
-      "user@example.com",
-      expect.objectContaining({ repo: "owner/repo", tagName: "v2.0.0" }),
-    );
+    expect(resultProducer.publishResult).toHaveBeenCalledWith({
+      sagaId: 42,
+      templateId: "confirmation",
+      status: "sent",
+    });
   });
 
-  it("logs error and does not throw when message JSON is invalid", async () => {
+  it("publishes a 'failed' result with the error when send throws", async () => {
+    emailService.send.mockRejectedValueOnce(new Error("SMTP failure"));
+
+    await deliver({
+      templateId: "confirmation",
+      email: "user@example.com",
+      data: { email: "user@example.com", confirmToken: "tok" },
+      sagaId: 42,
+    });
+
+    expect(resultProducer.publishResult).toHaveBeenCalledWith({
+      sagaId: 42,
+      templateId: "confirmation",
+      status: "failed",
+      error: "SMTP failure",
+    });
+  });
+
+  it("does not publish a result when sagaId is absent (release notification)", async () => {
+    await deliver({
+      templateId: "release",
+      email: "user@example.com",
+      data: { email: "user@example.com", repo: "o/r", tagName: "v2" },
+    });
+
+    expect(resultProducer.publishResult).not.toHaveBeenCalled();
+  });
+
+  it("logs and does not throw on invalid JSON", async () => {
     await expect(
       capturedEachMessage({
         topic: "notifications",
         message: { value: Buffer.from("not-valid-json") },
       }),
     ).resolves.not.toThrow();
-
     expect(logger.error).toHaveBeenCalled();
     expect(emailService.send).not.toHaveBeenCalled();
-  });
-
-  it("logs error and does not throw when emailService.send fails", async () => {
-    emailService.send.mockRejectedValueOnce(new Error("SMTP failure"));
-    const payload = {
-      templateId: "confirmation",
-      email: "user@example.com",
-      data: { email: "user@example.com", confirmToken: "tok" },
-    };
-
-    await expect(
-      capturedEachMessage({
-        topic: "notifications",
-        message: { value: Buffer.from(JSON.stringify(payload)) },
-      }),
-    ).resolves.not.toThrow();
-
-    expect(logger.error).toHaveBeenCalled();
   });
 });
