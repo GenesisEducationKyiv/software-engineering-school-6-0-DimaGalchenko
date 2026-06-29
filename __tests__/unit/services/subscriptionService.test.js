@@ -86,6 +86,34 @@ describe("SubscriptionService", () => {
         ValidationError,
       );
     });
+
+    it("throws ValidationError for empty email", async () => {
+      await expect(service.subscribe("", "owner/repo")).rejects.toThrow(
+        ValidationError,
+      );
+    });
+
+    it("throws ValidationError for invalid repo format", async () => {
+      await expect(
+        service.subscribe("user@example.com", "invalidrepo"),
+      ).rejects.toThrow(ValidationError);
+    });
+
+    it("throws ValidationError for repo with multiple slashes", async () => {
+      await expect(
+        service.subscribe("user@example.com", "a/b/c"),
+      ).rejects.toThrow(ValidationError);
+    });
+
+    it("propagates NotFoundError from githubService", async () => {
+      deps.githubService.validateRepository.mockRejectedValue(
+        new NotFoundError("Repository not found on GitHub"),
+      );
+
+      await expect(
+        service.subscribe("user@example.com", "owner/repo"),
+      ).rejects.toThrow(NotFoundError);
+    });
   });
 
   describe("confirm", () => {
@@ -100,6 +128,23 @@ describe("SubscriptionService", () => {
       expect(deps.subscriptionRepository.confirmByToken).toHaveBeenCalledWith(
         VALID_TOKEN,
       );
+    });
+
+    it("allows confirming a pending subscription (reply race not yet processed)", async () => {
+      deps.subscriptionRepository.findByConfirmToken.mockResolvedValue({
+        id: 1,
+        confirmation_email_status: "pending",
+      });
+
+      await service.confirm(VALID_TOKEN);
+
+      expect(deps.subscriptionRepository.confirmByToken).toHaveBeenCalledWith(
+        VALID_TOKEN,
+      );
+    });
+
+    it("throws ValidationError for empty token", async () => {
+      await expect(service.confirm("")).rejects.toThrow(ValidationError);
     });
 
     it("throws NotFoundError for an unknown token", async () => {
@@ -118,6 +163,68 @@ describe("SubscriptionService", () => {
 
       await expect(service.confirm(VALID_TOKEN)).rejects.toThrow(ConflictError);
       expect(deps.subscriptionRepository.confirmByToken).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("unsubscribe", () => {
+    it("deletes subscription by unsubscribe token", async () => {
+      deps.subscriptionRepository.findByUnsubscribeToken.mockResolvedValue({
+        id: 1,
+      });
+
+      await service.unsubscribe(VALID_TOKEN);
+
+      expect(
+        deps.subscriptionRepository.deleteByUnsubscribeToken,
+      ).toHaveBeenCalledWith(VALID_TOKEN);
+    });
+
+    it("throws NotFoundError for unknown token", async () => {
+      deps.subscriptionRepository.findByUnsubscribeToken.mockResolvedValue(
+        null,
+      );
+
+      await expect(service.unsubscribe(UNKNOWN_TOKEN)).rejects.toThrow(
+        NotFoundError,
+      );
+    });
+
+    it("throws ValidationError for empty token", async () => {
+      await expect(service.unsubscribe("")).rejects.toThrow(ValidationError);
+    });
+  });
+
+  describe("listByEmail", () => {
+    it("returns confirmed subscriptions for valid email", async () => {
+      const subscriptions = [
+        {
+          email: "user@example.com",
+          repo: "owner/repo",
+          confirmed: true,
+          last_seen_tag: "v1.0",
+        },
+      ];
+      deps.subscriptionRepository.findConfirmedByEmail.mockResolvedValue(
+        subscriptions,
+      );
+
+      const result = await service.listByEmail("user@example.com");
+
+      expect(result).toEqual(subscriptions);
+    });
+
+    it("returns empty array when no subscriptions exist", async () => {
+      deps.subscriptionRepository.findConfirmedByEmail.mockResolvedValue([]);
+
+      const result = await service.listByEmail("user@example.com");
+
+      expect(result).toEqual([]);
+    });
+
+    it("throws ValidationError for invalid email", async () => {
+      await expect(service.listByEmail("invalid")).rejects.toThrow(
+        ValidationError,
+      );
     });
   });
 });
