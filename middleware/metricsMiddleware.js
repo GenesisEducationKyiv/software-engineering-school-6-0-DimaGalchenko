@@ -30,10 +30,15 @@ const normalizeRoute = (req) => {
   if (req.route) {
     return req.baseUrl + req.route.path;
   }
-  return req.path;
+  return "unknown";
 };
 
 const createRequestMiddleware = (logger) => (req, res, next) => {
+  if (req.path === "/metrics") {
+    next();
+    return;
+  }
+
   const end = httpRequestDuration.startTimer();
   const start = Date.now();
 
@@ -50,7 +55,7 @@ const createRequestMiddleware = (logger) => (req, res, next) => {
       httpErrorsTotal.inc(labels);
     }
 
-    if (logger && req.path !== "/metrics") {
+    if (logger) {
       logger.info("HTTP request", {
         method: req.method,
         url: req.originalUrl,
