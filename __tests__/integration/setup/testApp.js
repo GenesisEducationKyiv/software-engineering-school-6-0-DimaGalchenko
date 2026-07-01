@@ -21,7 +21,11 @@ const buildApp = (pool) => {
     generateToken,
   });
 
-  const app = createApp(subscriptionService);
+  const app = createApp(subscriptionService, undefined, {
+    info: () => {},
+    warn: () => {},
+    error: () => {},
+  });
 
   return { app, githubService, emailService };
 };
