@@ -19,15 +19,28 @@ const httpRequestsTotal = new client.Counter({
   registers: [register],
 });
 
+const httpErrorsTotal = new client.Counter({
+  name: "http_errors_total",
+  help: "Total number of HTTP error responses (4xx and 5xx)",
+  labelNames: ["method", "route", "status_code"],
+  registers: [register],
+});
+
 const normalizeRoute = (req) => {
   if (req.route) {
     return req.baseUrl + req.route.path;
   }
-  return req.path;
+  return "unknown";
 };
 
-const metricsMiddleware = (req, res, next) => {
+const createRequestMiddleware = (logger) => (req, res, next) => {
+  if (req.path === "/metrics") {
+    next();
+    return;
+  }
+
   const end = httpRequestDuration.startTimer();
+  const start = Date.now();
 
   res.on("finish", () => {
     const route = normalizeRoute(req);
@@ -38,9 +51,22 @@ const metricsMiddleware = (req, res, next) => {
     };
     end(labels);
     httpRequestsTotal.inc(labels);
+    if (res.statusCode >= 400) {
+      httpErrorsTotal.inc(labels);
+    }
+
+    if (logger) {
+      logger.info("HTTP request", {
+        method: req.method,
+        url: req.originalUrl,
+        statusCode: res.statusCode,
+        duration: Date.now() - start,
+        ip: req.ip,
+      });
+    }
   });
 
   next();
 };
 
-module.exports = { metricsMiddleware, register };
+module.exports = { createRequestMiddleware, register };

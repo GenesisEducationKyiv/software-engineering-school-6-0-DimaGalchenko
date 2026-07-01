@@ -21,11 +21,11 @@ const {
 } = require("./modules/release");
 const { createNotificationClient } = require("./clients/notification");
 const createApp = require("./app");
+const logger = createLogger(config);
 
 const start = async () => {
-  const logger = createLogger();
   const pool = createPool(config.databaseUrl);
-  await runMigrations(pool);
+  await runMigrations(pool, logger);
 
   const subscriptionRepository = createSubscriptionRepository(pool);
 
@@ -36,11 +36,14 @@ const start = async () => {
       retryStrategy: () => null,
       lazyConnect: true,
     });
-    redisClient.on("error", () => {});
+    redisClient.on("error", (err) => {
+      logger.warn("Redis error", { error: err.message });
+    });
     await redisClient.connect();
     await redisClient.ping();
     cacheService = createCacheService(redisClient, { ttl: config.cacheTtl });
   } catch (_err) {
+    logger.warn("Redis unavailable, running without cache");
     cacheService = createNullCacheService();
   }
 
@@ -76,10 +79,10 @@ const start = async () => {
     logger,
   });
 
-  const app = createApp(subscriptionService, config.apiKey);
+  const app = createApp(subscriptionService, config.apiKey, logger);
 
   const server = app.listen(config.port, () => {
-    console.log(`Server is running on port ${config.port}`);
+    logger.info(`Server is running on port ${config.port}`);
   });
 
   const schedulerService = createSchedulerService();
@@ -101,6 +104,9 @@ const start = async () => {
 };
 
 start().catch((err) => {
-  console.error("Failed to start server:", err);
+  logger.error("Failed to start server", {
+    error: err.message,
+    stack: err.stack,
+  });
   process.exit(1);
 });

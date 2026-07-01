@@ -1,17 +1,17 @@
 const path = require("path");
 const express = require("express");
 const { createSubscriptionRoutes } = require("./modules/subscription");
-const errorHandler = require("./middleware/errorHandler");
+const createErrorHandler = require("./middleware/errorHandler");
 const createAuthMiddleware = require("./middleware/authMiddleware");
 const {
-  metricsMiddleware,
+  createRequestMiddleware,
   register,
 } = require("./middleware/metricsMiddleware");
 
-const createApp = (subscriptionService, apiKey) => {
+const createApp = (subscriptionService, apiKey, logger) => {
   const app = express();
 
-  app.use(metricsMiddleware);
+  app.use(createRequestMiddleware(logger));
 
   app.get("/metrics", async (req, res) => {
     res.set("Content-Type", register.contentType);
@@ -34,7 +34,7 @@ const createApp = (subscriptionService, apiKey) => {
     createAuthMiddleware(apiKey),
     createSubscriptionRoutes(subscriptionService),
   );
-  app.use(errorHandler);
+  app.use(createErrorHandler(logger));
 
   return app;
 };
