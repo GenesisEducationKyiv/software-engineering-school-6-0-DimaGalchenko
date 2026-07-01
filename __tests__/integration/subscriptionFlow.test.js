@@ -42,6 +42,7 @@ describe("Subscription Integration", () => {
       expect(notificationClient.send).toHaveBeenCalledWith("confirmation", {
         email: "test@example.com",
         confirmToken: expect.any(String),
+        sagaId: expect.any(Number),
       });
 
       const { rows } = await pool.query(
@@ -128,6 +129,7 @@ describe("Subscription Integration", () => {
       expect(notificationClient.send).toHaveBeenCalledWith("confirmation", {
         email: "test@example.com",
         confirmToken: originalToken,
+        sagaId: expect.any(Number),
       });
 
       const { rows: after } = await pool.query(

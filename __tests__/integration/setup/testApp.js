@@ -1,9 +1,12 @@
 const {
   createSubscriptionRepository,
   createSubscriptionService,
+  createSubscriptionConfirmationSaga,
 } = require("../../../modules/subscription");
 const { generateToken } = require("../../../shared/tokenService");
 const createApp = require("../../../app");
+
+const noopLogger = { info: () => {}, error: () => {} };
 
 const buildApp = (pool) => {
   const subscriptionRepository = createSubscriptionRepository(pool);
@@ -16,11 +19,20 @@ const buildApp = (pool) => {
     send: jest.fn().mockResolvedValue(undefined),
   };
 
+  const saga = createSubscriptionConfirmationSaga({
+    subscriptionRepository: {
+      create: subscriptionRepository.create,
+      updateConfirmationStatus: subscriptionRepository.updateConfirmationStatus,
+    },
+    notificationClient,
+    logger: noopLogger,
+  });
+
   const subscriptionService = createSubscriptionService({
     subscriptionRepository,
     githubService,
-    notificationClient,
     generateToken,
+    saga,
   });
 
   const app = createApp(subscriptionService);
