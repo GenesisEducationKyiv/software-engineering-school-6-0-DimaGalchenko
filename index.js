@@ -13,6 +13,8 @@ const {
   createSubscriptionService,
   createSubscriptionRepository,
   createSubscriptionGrpcServer,
+  createSubscriptionConfirmationSaga,
+  createNotificationResultConsumer,
 } = require("./modules/subscription");
 const {
   createGithubService,
@@ -48,10 +50,18 @@ const start = async () => {
   const notificationClient = createNotificationClient(config, logger);
   await notificationClient.connect();
 
+  const saga = createSubscriptionConfirmationSaga({
+    subscriptionRepository: {
+      create: subscriptionRepository.create,
+      updateConfirmationStatus: subscriptionRepository.updateConfirmationStatus,
+    },
+    notificationClient,
+    logger,
+  });
+
   const subscriptionService = createSubscriptionService({
     subscriptionRepository: {
       findByEmailAndRepo: subscriptionRepository.findByEmailAndRepo,
-      create: subscriptionRepository.create,
       findByConfirmToken: subscriptionRepository.findByConfirmToken,
       findByUnsubscribeToken: subscriptionRepository.findByUnsubscribeToken,
       confirmByToken: subscriptionRepository.confirmByToken,
@@ -60,8 +70,8 @@ const start = async () => {
       findAllByEmail: subscriptionRepository.findAllByEmail,
     },
     githubService,
-    notificationClient,
     generateToken,
+    saga,
   });
 
   const releaseEventConsumer = createReleaseEventConsumer({
@@ -74,6 +84,13 @@ const start = async () => {
     logger,
   });
   await releaseEventConsumer.start();
+
+  const notificationResultConsumer = createNotificationResultConsumer({
+    kafkaBroker: config.kafkaBroker,
+    saga,
+    logger,
+  });
+  await notificationResultConsumer.start();
 
   const app = createApp(
     subscriptionService,
@@ -93,6 +110,7 @@ const start = async () => {
     await grpcServer.stop();
     await notificationClient.disconnect();
     await releaseEventConsumer.stop();
+    await notificationResultConsumer.stop();
     await pool.end();
     process.exit(0);
   };

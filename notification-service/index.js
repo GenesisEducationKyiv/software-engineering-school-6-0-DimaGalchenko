@@ -6,6 +6,7 @@ const createEmailService = require("./services/emailService");
 const createApp = require("./app");
 const createGrpcServer = require("./grpc/server");
 const createNotificationConsumer = require("./kafka/consumer");
+const createResultProducer = require("./kafka/producer");
 const createLogger = require("./shared/logger");
 
 const start = async () => {
@@ -28,8 +29,15 @@ const start = async () => {
   const grpcServer = createGrpcServer(emailService);
   grpcServer.start(config.grpcPort);
 
+  const resultProducer = createResultProducer({
+    kafkaBroker: config.kafkaBroker,
+    logger,
+  });
+  await resultProducer.connect();
+
   const consumer = createNotificationConsumer({
     emailService,
+    resultProducer,
     kafkaBroker: config.kafkaBroker,
     logger,
   });
@@ -37,6 +45,7 @@ const start = async () => {
 
   const shutdown = async () => {
     await consumer.stop();
+    await resultProducer.disconnect();
     server.close();
     grpcServer.stop();
     process.exit(0);
