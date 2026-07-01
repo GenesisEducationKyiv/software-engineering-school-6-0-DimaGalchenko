@@ -1,4 +1,5 @@
 const { Resend } = require("resend");
+const logger = require("../../shared/logger");
 
 const createResendSender = (apiKey) => {
   const resend = new Resend(apiKey);
@@ -14,7 +15,7 @@ const createResendSender = (apiKey) => {
       if (error) {
         throw new Error(`Resend error: ${error.message}`);
       }
-      console.log(`[email] sent via resend to ${to} | id: ${data.id}`);
+      logger.info(`[email] sent via resend to ${to} | id: ${data.id}`);
     },
   };
 };

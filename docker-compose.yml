@@ -26,9 +26,9 @@ services:
 
   notification:
     build: ./notification-service
-    ports:
-      - "3001:3001"
-      - "50052:50052"
+    expose:
+      - "3001"
+      - "50052"
     environment:
       PORT: 3001
       GRPC_PORT: 50052

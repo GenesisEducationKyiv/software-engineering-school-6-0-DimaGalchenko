@@ -5,6 +5,7 @@ const createEmailLinkBuilder = require("./services/emailLinkBuilder");
 const createEmailService = require("./services/emailService");
 const createApp = require("./app");
 const createGrpcServer = require("./grpc/server");
+const logger = require("./shared/logger");
 
 const start = () => {
   const sender = createSender(config.email);
@@ -19,7 +20,7 @@ const start = () => {
   const app = createApp(emailService);
 
   const server = app.listen(config.port, () => {
-    console.log(`Notification HTTP server running on port ${config.port}`);
+    logger.info(`Notification HTTP server running on port ${config.port}`);
   });
 
   const grpcServer = createGrpcServer(emailService);

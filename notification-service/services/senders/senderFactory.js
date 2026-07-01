@@ -2,6 +2,7 @@ const nodemailer = require("nodemailer");
 const createNodemailerSender = require("./nodemailerSender");
 const createResendSender = require("./resendSender");
 const createConsoleSender = require("./consoleSender");
+const logger = require("../../shared/logger");
 
 const providers = {
   resend: (emailConfig) => createResendSender(emailConfig.resendApiKey),
@@ -34,9 +35,9 @@ const createSender = (emailConfig) => {
   }
 
   if (provider !== "console") {
-    console.log(`[email] using provider: ${provider}`);
+    logger.info(`[email] using provider: ${provider}`);
   } else {
-    console.warn(
+    logger.warn(
       "[email] no credentials configured — emails will be logged to console only",
     );
   }

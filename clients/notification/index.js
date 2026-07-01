@@ -2,10 +2,10 @@ const createHttpNotificationClient = require("./httpNotificationClient");
 const createGrpcNotificationClient = require("./grpcNotificationClient");
 
 const createNotificationClient = (config) => {
-  if (config.notificationTransport === "grpc") {
-    return createGrpcNotificationClient(config.notificationGrpcUrl);
+  if (config.notification.transport === "grpc") {
+    return createGrpcNotificationClient(config.notification.grpcUrl);
   }
-  return createHttpNotificationClient(config.notificationHttpUrl);
+  return createHttpNotificationClient(config.notification.httpUrl);
 };
 
 module.exports = { createNotificationClient };

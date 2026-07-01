@@ -13,6 +13,16 @@ const PROTO_PATH = path.join(
   "notification.proto",
 );
 
+const packageDefinition = protoLoader.loadSync(PROTO_PATH, {
+  keepCase: true,
+  longs: String,
+  enums: String,
+  defaults: true,
+  oneofs: true,
+});
+const notificationProto =
+  grpc.loadPackageDefinition(packageDefinition).notification;
+
 const startMockNotificationService = () => {
   const mockEmailService = {
     sendConfirmation: () => Promise.resolve(),
@@ -30,17 +40,8 @@ const startMockNotificationService = () => {
 
   const httpServer = app.listen(3099);
 
-  const packageDefinition = protoLoader.loadSync(PROTO_PATH, {
-    keepCase: true,
-    longs: String,
-    enums: String,
-    defaults: true,
-    oneofs: true,
-  });
-  const proto = grpc.loadPackageDefinition(packageDefinition).notification;
-
   const grpcServer = new grpc.Server();
-  grpcServer.addService(proto.NotificationService.service, {
+  grpcServer.addService(notificationProto.NotificationService.service, {
     SendConfirmation: async (_call, callback) => {
       await mockEmailService.sendConfirmation();
       callback(null, { success: true, message: "Sent" });
@@ -85,15 +86,7 @@ const createHttpClient = (baseUrl) => ({
 });
 
 const createGrpcClient = (url) => {
-  const packageDefinition = protoLoader.loadSync(PROTO_PATH, {
-    keepCase: true,
-    longs: String,
-    enums: String,
-    defaults: true,
-    oneofs: true,
-  });
-  const proto = grpc.loadPackageDefinition(packageDefinition).notification;
-  const client = new proto.NotificationService(
+  const client = new notificationProto.NotificationService(
     url,
     grpc.credentials.createInsecure(),
   );

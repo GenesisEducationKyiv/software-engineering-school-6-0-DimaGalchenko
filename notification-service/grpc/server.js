@@ -1,6 +1,7 @@
 const path = require("path");
 const grpc = require("@grpc/grpc-js");
 const protoLoader = require("@grpc/proto-loader");
+const logger = require("../shared/logger");
 
 const PROTO_PATH = path.join(__dirname, "notification.proto");
 
@@ -41,7 +42,7 @@ const createGrpcServer = (emailService) => {
         if (err) {
           throw err;
         }
-        console.log(`Notification gRPC server running on port ${port}`);
+        logger.info(`Notification gRPC server running on port ${port}`);
       },
     );
   };

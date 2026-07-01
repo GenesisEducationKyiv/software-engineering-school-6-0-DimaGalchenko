@@ -13,10 +13,11 @@ const config = {
   apiKey: process.env.API_KEY || "",
   grpcPort: parseInt(process.env.GRPC_PORT, 10) || 50051,
   cacheTtl: parseInt(process.env.CACHE_TTL, 10) || 600,
-  notificationTransport: process.env.NOTIFICATION_TRANSPORT || "grpc",
-  notificationGrpcUrl: process.env.NOTIFICATION_GRPC_URL || "localhost:50052",
-  notificationHttpUrl:
-    process.env.NOTIFICATION_HTTP_URL || "http://localhost:3001",
+  notification: {
+    transport: process.env.NOTIFICATION_TRANSPORT || "grpc",
+    grpcUrl: process.env.NOTIFICATION_GRPC_URL || "localhost:50052",
+    httpUrl: process.env.NOTIFICATION_HTTP_URL || "http://localhost:3001",
+  },
 };
 
 module.exports = config;
