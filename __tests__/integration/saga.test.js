@@ -27,6 +27,9 @@ const createFakeRepo = () => {
       row.confirmation_failure_reason = reason;
       return Promise.resolve();
     }),
+    delete: jest.fn((id) => {
+      rows.delete(id);
+    }),
   };
 };
 
@@ -42,6 +45,10 @@ describe("subscription confirmation saga (integration)", () => {
 
     const sub = await saga.start("u@e.com", "o/r", "ctok", "utok");
     expect(repo.rows.get(sub.id).confirmation_email_status).toBe("pending");
+    expect(notificationClient.send).toHaveBeenCalledWith(
+      "confirmation",
+      expect.objectContaining({ sagaId: sub.id }),
+    );
 
     // Simulate the notification-service reply arriving over Kafka.
     await saga.onResult({ sagaId: sub.id, status: "sent" });
@@ -68,7 +75,8 @@ describe("subscription confirmation saga (integration)", () => {
     const row = repo.rows.get(sub.id);
     expect(row.confirmation_email_status).toBe("failed");
     expect(row.confirmation_failure_reason).toBe("SMTP boom");
-    expect(repo.rows.has(sub.id)).toBe(true); // not deleted — user keeps visibility
+    expect(repo.delete).not.toHaveBeenCalled(); // compensation preserves the row for visibility
+    expect(repo.rows.has(sub.id)).toBe(true);
   });
 
   it("compensates immediately when command dispatch fails", async () => {
