@@ -121,6 +121,31 @@ describe("NotificationConsumer", () => {
     expect(emailService.send).toHaveBeenCalled();
   });
 
+  it("does not reclassify a sent email or throw when publishing the reply fails", async () => {
+    resultProducer.publishResult.mockRejectedValueOnce(
+      new Error("broker down"),
+    );
+
+    await expect(
+      deliver({
+        templateId: "confirmation",
+        email: "user@example.com",
+        data: { email: "user@example.com", confirmToken: "tok" },
+        sagaId: 42,
+      }),
+    ).resolves.not.toThrow();
+
+    // Only the "sent" reply was attempted; the publish failure must not
+    // produce a spurious "failed" reply for an email that was actually sent.
+    expect(resultProducer.publishResult).toHaveBeenCalledTimes(1);
+    expect(resultProducer.publishResult).toHaveBeenCalledWith({
+      sagaId: 42,
+      templateId: "confirmation",
+      status: "sent",
+    });
+    expect(logger.error).toHaveBeenCalled();
+  });
+
   it("logs and does not throw on invalid JSON", async () => {
     await expect(
       capturedEachMessage({

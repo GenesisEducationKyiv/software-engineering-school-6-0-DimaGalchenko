@@ -63,4 +63,16 @@ describe("notificationResultConsumer", () => {
     expect(logger.error).toHaveBeenCalled();
     expect(saga.onResult).not.toHaveBeenCalled();
   });
+
+  it("logs and does not throw when saga.onResult rejects", async () => {
+    saga.onResult.mockRejectedValueOnce(new Error("db down"));
+    const payload = { sagaId: 3, templateId: "confirmation", status: "sent" };
+
+    await expect(
+      capturedEachMessage({
+        message: { value: Buffer.from(JSON.stringify(payload)) },
+      }),
+    ).resolves.not.toThrow();
+    expect(logger.error).toHaveBeenCalled();
+  });
 });

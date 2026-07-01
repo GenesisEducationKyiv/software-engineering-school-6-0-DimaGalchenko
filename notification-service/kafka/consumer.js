@@ -29,28 +29,41 @@ const createNotificationConsumer = ({
 
         const { templateId, email, data, sagaId } = payload;
 
+        // Publishing the saga reply must never reclassify the send outcome or
+        // abort the handler: a failure on the reply topic is logged and
+        // swallowed, so it cannot turn a sent email into a "failed" reply or
+        // block the offset commit (which would redeliver and re-send).
+        const publishResultSafe = async (result) => {
+          if (!sagaId) return;
+          try {
+            await resultProducer.publishResult(result);
+          } catch (err) {
+            logger.error(
+              `[kafka] failed to publish ${result.status} result for saga ${sagaId}: ${err.message}`,
+            );
+          }
+        };
+
+        let sendError;
         try {
           await emailService.send(templateId, email, data);
           logger.info(`[kafka] sent ${templateId} to ${email}`);
-          if (sagaId) {
-            await resultProducer.publishResult({
-              sagaId,
-              templateId,
-              status: "sent",
-            });
-          }
         } catch (err) {
+          sendError = err;
           logger.error(
             `[kafka] failed to send ${templateId} to ${email}: ${err.message}`,
           );
-          if (sagaId) {
-            await resultProducer.publishResult({
-              sagaId,
-              templateId,
-              status: "failed",
-              error: err.message,
-            });
-          }
+        }
+
+        if (sendError) {
+          await publishResultSafe({
+            sagaId,
+            templateId,
+            status: "failed",
+            error: sendError.message,
+          });
+        } else {
+          await publishResultSafe({ sagaId, templateId, status: "sent" });
         }
       },
     });
