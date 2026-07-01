@@ -1,5 +1,5 @@
 const crypto = require("crypto");
-const createSubscriptionService = require("../../../services/subscriptionService");
+const createSubscriptionService = require("../../../modules/subscription/subscriptionService");
 
 const VALID_TOKEN = "550e8400-e29b-41d4-a716-446655440000";
 const UNKNOWN_TOKEN = "660e8400-e29b-41d4-a716-446655440000";
@@ -8,7 +8,7 @@ const {
   ValidationError,
   NotFoundError,
   ConflictError,
-} = require("../../../utils/errors");
+} = require("../../../shared/errors");
 
 const createMockDependencies = () => ({
   subscriptionRepository: {
@@ -23,8 +23,8 @@ const createMockDependencies = () => ({
   githubService: {
     validateRepository: jest.fn().mockResolvedValue(true),
   },
-  emailService: {
-    sendConfirmation: jest.fn().mockResolvedValue(undefined),
+  notificationClient: {
+    send: jest.fn().mockResolvedValue(undefined),
   },
   generateToken: () => crypto.randomUUID(),
 });
@@ -54,9 +54,9 @@ describe("SubscriptionService", () => {
           repo: "owner/repo",
         }),
       );
-      expect(deps.emailService.sendConfirmation).toHaveBeenCalledWith(
-        "user@example.com",
-        expect.any(String),
+      expect(deps.notificationClient.send).toHaveBeenCalledWith(
+        "confirmation",
+        { email: "user@example.com", confirmToken: expect.any(String) },
       );
     });
 
@@ -104,9 +104,9 @@ describe("SubscriptionService", () => {
       await service.subscribe("user@example.com", "owner/repo");
 
       expect(deps.subscriptionRepository.create).not.toHaveBeenCalled();
-      expect(deps.emailService.sendConfirmation).toHaveBeenCalledWith(
-        "user@example.com",
-        EXISTING_TOKEN,
+      expect(deps.notificationClient.send).toHaveBeenCalledWith(
+        "confirmation",
+        { email: "user@example.com", confirmToken: EXISTING_TOKEN },
       );
     });
 

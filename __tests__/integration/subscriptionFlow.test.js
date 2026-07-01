@@ -5,7 +5,7 @@ const {
   truncateAll,
 } = require("./setup/testDatabase");
 const { buildApp } = require("./setup/testApp");
-const { NotFoundError } = require("../../utils/errors");
+const { NotFoundError } = require("../../shared/errors");
 
 jest.setTimeout(30000);
 
@@ -13,14 +13,14 @@ describe("Subscription Integration", () => {
   let pool;
   let app;
   let githubService;
-  let emailService;
+  let notificationClient;
 
   beforeAll(async () => {
     pool = await startDatabase();
     const built = buildApp(pool);
     app = built.app;
     githubService = built.githubService;
-    emailService = built.emailService;
+    notificationClient = built.notificationClient;
   });
 
   beforeEach(async () => {
@@ -39,10 +39,10 @@ describe("Subscription Integration", () => {
         .send({ email: "test@example.com", repo: "owner/repo" });
 
       expect(res.status).toBe(200);
-      expect(emailService.sendConfirmation).toHaveBeenCalledWith(
-        "test@example.com",
-        expect.any(String),
-      );
+      expect(notificationClient.send).toHaveBeenCalledWith("confirmation", {
+        email: "test@example.com",
+        confirmToken: expect.any(String),
+      });
 
       const { rows } = await pool.query(
         "SELECT * FROM subscriptions WHERE email = $1 AND repo = $2",
@@ -118,17 +118,17 @@ describe("Subscription Integration", () => {
       );
       const originalToken = before[0].confirm_token;
 
-      emailService.sendConfirmation.mockClear();
+      notificationClient.send.mockClear();
 
       const res = await request(app)
         .post("/api/subscribe")
         .send({ email: "test@example.com", repo: "owner/repo" });
 
       expect(res.status).toBe(200);
-      expect(emailService.sendConfirmation).toHaveBeenCalledWith(
-        "test@example.com",
-        originalToken,
-      );
+      expect(notificationClient.send).toHaveBeenCalledWith("confirmation", {
+        email: "test@example.com",
+        confirmToken: originalToken,
+      });
 
       const { rows: after } = await pool.query(
         "SELECT * FROM subscriptions WHERE email = $1",

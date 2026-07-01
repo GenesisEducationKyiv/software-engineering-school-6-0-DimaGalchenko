@@ -1,5 +1,5 @@
 const { z } = require("zod");
-const { ValidationError } = require("../utils/errors");
+const { ValidationError } = require("../../shared/errors");
 
 const emailSchema = z.string().email();
 const uuidSchema = z.string().uuid();

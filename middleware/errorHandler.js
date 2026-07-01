@@ -1,4 +1,4 @@
-const { AppError } = require("../utils/errors");
+const { AppError } = require("../shared/errors");
 
 const createErrorHandler =
   (logger = console) =>

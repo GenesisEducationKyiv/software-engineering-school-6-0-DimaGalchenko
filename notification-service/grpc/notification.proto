@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+import "google/protobuf/struct.proto";
+
+package notification;
+
+service NotificationService {
+  rpc Send (SendRequest) returns (SendResponse);
+}
+
+message SendRequest {
+  string template_id = 1;
+  string email = 2;
+  google.protobuf.Struct data = 3;
+}
+
+message SendResponse {
+  bool success = 1;
+  string message = 2;
+}
