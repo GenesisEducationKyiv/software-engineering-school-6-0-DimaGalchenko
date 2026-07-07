@@ -6,6 +6,7 @@ services:
       - "50051:50051"
     environment:
       PORT: 3000
+      INTERNAL_PORT: 3100
       DATABASE_URL: postgres://postgres:postgres@db:5432/release_notifier
       BASE_URL: http://localhost:3000
       GITHUB_TOKEN: ""
@@ -44,7 +45,7 @@ services:
   release-service:
     build: ./release-service
     environment:
-      MAIN_APP_URL: http://app:3000
+      MAIN_APP_URL: http://app:3100
       MAIN_APP_API_KEY: ${API_KEY:-}
       KAFKA_BROKER: kafka:9092
       GITHUB_TOKEN: ${GITHUB_TOKEN:-}

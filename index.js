@@ -20,6 +20,7 @@ const {
 } = require("./modules/release");
 const { createNotificationClient } = require("./clients/notification");
 const createApp = require("./app");
+const createInternalApp = require("./internalApp");
 
 const start = async () => {
   const logger = createLogger();
@@ -46,7 +47,14 @@ const start = async () => {
   const githubService = createGithubService({ config, cacheService });
 
   const notificationClient = createNotificationClient(config, logger);
-  await notificationClient.connect();
+  try {
+    await notificationClient.connect();
+  } catch (err) {
+    logger.error(
+      `[kafka] notification client failed to connect to broker ${config.kafkaBroker}: ${err.message}`,
+    );
+    throw err;
+  }
 
   const subscriptionService = createSubscriptionService({
     subscriptionRepository: {
@@ -75,21 +83,26 @@ const start = async () => {
   });
   await releaseEventConsumer.start();
 
-  const app = createApp(
-    subscriptionService,
-    subscriptionRepository,
-    config.apiKey,
-  );
+  const app = createApp(subscriptionService, config.apiKey);
 
   const server = app.listen(config.port, () => {
     console.log(`Server is running on port ${config.port}`);
+  });
+
+  // Internal routes run on a separate port that is NOT published to the host
+  // in docker-compose, so they are reachable only from within the Docker
+  // network (e.g. release-service) and never from the internet.
+  const internalApp = createInternalApp(subscriptionRepository, config.apiKey);
+  const internalServer = internalApp.listen(config.internalPort, () => {
+    console.log(`Internal server is running on port ${config.internalPort}`);
   });
 
   const grpcServer = createSubscriptionGrpcServer(subscriptionService);
   grpcServer.start(config.grpcPort);
 
   const shutdown = async () => {
-    server.close();
+    await new Promise((resolve) => server.close(resolve));
+    await new Promise((resolve) => internalServer.close(resolve));
     await grpcServer.stop();
     await notificationClient.disconnect();
     await releaseEventConsumer.stop();

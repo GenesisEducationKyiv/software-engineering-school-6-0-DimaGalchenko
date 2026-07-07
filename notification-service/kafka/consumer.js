@@ -1,11 +1,40 @@
 const { Kafka } = require("kafkajs");
 
-const createNotificationConsumer = ({ emailService, kafkaBroker, logger }) => {
+const createNotificationConsumer = ({
+  emailService,
+  kafkaBroker,
+  logger,
+  maxRetries = 3,
+  retryDelayMs = 500,
+}) => {
   const kafka = new Kafka({
     clientId: "notification-service",
     brokers: [kafkaBroker],
   });
   const consumer = kafka.consumer({ groupId: "notification-service-group" });
+
+  const sendWithRetry = async (templateId, email, data) => {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        await emailService.send(templateId, email, data);
+        return true;
+      } catch (err) {
+        const lastAttempt = attempt === maxRetries;
+        logger.error(
+          `[kafka] send attempt ${attempt}/${maxRetries} failed for ${templateId} to ${email}: ${err.message}${
+            lastAttempt ? " (giving up)" : ", retrying"
+          }`,
+        );
+        if (lastAttempt) {
+          return false;
+        }
+        await new Promise((resolve) =>
+          setTimeout(resolve, retryDelayMs * attempt),
+        );
+      }
+    }
+    return false;
+  };
 
   const start = async () => {
     await consumer.connect();
@@ -24,13 +53,9 @@ const createNotificationConsumer = ({ emailService, kafkaBroker, logger }) => {
 
         const { templateId, email, data } = payload;
 
-        try {
-          await emailService.send(templateId, email, data);
+        const sent = await sendWithRetry(templateId, email, data);
+        if (sent) {
           logger.info(`[kafka] sent ${templateId} to ${email}`);
-        } catch (err) {
-          logger.error(
-            `[kafka] failed to send ${templateId} to ${email}: ${err.message}`,
-          );
         }
       },
     });

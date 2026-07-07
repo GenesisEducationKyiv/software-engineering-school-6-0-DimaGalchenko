@@ -37,7 +37,7 @@ const start = async () => {
 
   const shutdown = async () => {
     await consumer.stop();
-    server.close();
+    await new Promise((resolve) => server.close(resolve));
     grpcServer.stop();
     process.exit(0);
   };

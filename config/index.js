@@ -1,5 +1,6 @@
 const config = {
   port: parseInt(process.env.PORT, 10) || 3000,
+  internalPort: parseInt(process.env.INTERNAL_PORT, 10) || 3100,
   databaseUrl:
     process.env.DATABASE_URL ||
     "postgres://postgres:postgres@localhost:5432/release_notifier",

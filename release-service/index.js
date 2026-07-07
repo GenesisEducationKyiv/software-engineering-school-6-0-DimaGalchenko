@@ -23,6 +23,10 @@ const start = async () => {
     logger.info("[redis] connected");
   } catch (err) {
     logger.error(`[redis] failed to connect: ${err.message}`);
+    // Redis is required for release deduplication; without it every scan
+    // would republish. Fail fast so the container restarts instead of
+    // running with every redis.get()/set() throwing at runtime.
+    throw err;
   }
 
   const cacheService = {
