@@ -21,6 +21,10 @@ const createScannerService = ({
     for (const subscriber of subscribers) {
       const missed = getMissedReleases(releases, subscriber.last_seen_tag);
 
+      // Advance last_seen_tag only through releases that were actually
+      // notified, so a notification outage retries them on the next scan.
+      let lastNotifiedTag = null;
+
       for (const release of missed) {
         try {
           await notificationClient.send("release", {
@@ -30,17 +34,19 @@ const createScannerService = ({
             htmlUrl: release.htmlUrl,
             unsubscribeToken: subscriber.unsubscribe_token,
           });
+          lastNotifiedTag = release.tagName;
         } catch (err) {
           logger.error(
             `Failed to notify ${subscriber.email} for ${repo}: ${err.message}`,
           );
+          break;
         }
       }
 
-      if (missed.length > 0) {
+      if (lastNotifiedTag) {
         await subscriptionRepository.updateLastSeenTagById(
           subscriber.id,
-          releases[0].tagName,
+          lastNotifiedTag,
         );
       }
     }

@@ -10,7 +10,7 @@ The notification microservice exposes both HTTP (REST/JSON) and gRPC (Protobuf/H
 node benchmark/compare-transports.js
 ```
 
-This starts a mock notification service (no real email sending) and sends 1,000 `sendConfirmation` requests through each transport sequentially, measuring per-request latency with `process.hrtime.bigint()`.
+This starts a mock notification service (no real email sending) exposing the real contract — `POST /api/notifications/send` and the `Send` RPC — and drives 1,000 `send("confirmation", ...)` requests through each of the real clients (`clients/notification/`) sequentially, measuring per-request latency with `process.hrtime.bigint()`.
 
 ## Expected Results
 
@@ -44,7 +44,8 @@ Actual numbers depend on hardware, OS, and system load.
 
 ```
 Main App (monolith)
-  ├── modules/notification/
+  ├── clients/notification/
+  │     ├── notification.proto          → copied contract (owned by the client)
   │     ├── httpNotificationClient.js   → HTTP/JSON → notification-service:3001
   │     └── grpcNotificationClient.js   → gRPC/Proto → notification-service:50052
   │
@@ -53,3 +54,22 @@ Notification Service (microservice)
   └── grpc/server   → gRPC handlers
         └── Both call emailService internally
 ```
+
+## Contract
+
+Both transports expose the same shape: a typed `templateId` and `email`, plus a
+schemaless `data` payload with the template variables.
+
+- HTTP: `POST /api/notifications/send` with `{ templateId, email, data }`
+- gRPC: `Send { template_id, email, data }` (`notification.v1` package)
+
+`data` is a `google.protobuf.Struct` (i.e. typed JSON) rather than per-template
+messages. This is deliberate: templates and their variables change often, and a
+schemaless payload lets the monolith add a template variable without a
+lockstep proto change across both services. The trade-off is that gRPC's
+schema checking doesn't cover template variables — if that starts biting, the
+stronger design is a `oneof` of per-template payload messages.
+
+Each side owns its copy of `notification.proto`; the contract file is the
+service boundary, so the monolith does not reach into the service's source
+tree at runtime.

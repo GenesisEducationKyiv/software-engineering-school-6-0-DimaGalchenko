@@ -1,4 +1,10 @@
-.git
+node_modules
+npm-debug.log
 __tests__
+.env
+.env.*
 *.md
-.env*
+.git
+.gitignore
+.dockerignore
+Dockerfile

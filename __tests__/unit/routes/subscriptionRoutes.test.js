@@ -20,7 +20,11 @@ describe("Subscription Routes", () => {
 
   beforeEach(() => {
     mockService = createMockSubscriptionService();
-    app = createApp(mockService);
+    app = createApp(mockService, undefined, {
+      info: () => {},
+      warn: () => {},
+      error: () => {},
+    });
   });
 
   describe("POST /api/subscribe", () => {
