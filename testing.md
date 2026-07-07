@@ -15,3 +15,5 @@ For E2E, install the browser first: `npx playwright install --with-deps chromium
 ## CI
 
 Four parallel GitHub Actions jobs: **lint**, **unit-tests**, **integration-tests**, **e2e-tests**. See `.github/workflows/ci.yml`.
+
+test
