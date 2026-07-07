@@ -1,9 +1,12 @@
+const REQUEST_TIMEOUT_MS = 5000;
+
 const createHttpNotificationClient = (baseUrl) => {
   const post = async (path, body) => {
     const response = await fetch(`${baseUrl}${path}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     });
 
     if (!response.ok) {
@@ -16,8 +19,13 @@ const createHttpNotificationClient = (baseUrl) => {
     return response.json();
   };
 
-  const send = async (templateId, data) => {
-    await post("/api/notifications/send", { templateId, data });
+  const send = (templateId, data) => {
+    const { email, ...payload } = data;
+    return post("/api/notifications/send", {
+      templateId,
+      email,
+      data: payload,
+    });
   };
 
   return { send };

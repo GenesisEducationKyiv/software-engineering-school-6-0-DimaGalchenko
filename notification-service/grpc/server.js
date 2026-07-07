@@ -2,6 +2,7 @@ const path = require("path");
 const grpc = require("@grpc/grpc-js");
 const protoLoader = require("@grpc/proto-loader");
 const logger = require("../shared/logger");
+const { fromStruct } = require("./structCodec");
 
 const PROTO_PATH = path.join(__dirname, "notification.proto");
 
@@ -14,13 +15,22 @@ const createGrpcServer = (emailService) => {
     oneofs: true,
   });
 
-  const proto = grpc.loadPackageDefinition(packageDefinition).notification;
+  const proto = grpc.loadPackageDefinition(packageDefinition).notification.v1;
 
   const handlers = {
     Send: async (call, callback) => {
+      const { template_id, email, data } = call.request;
+
+      if (!template_id || !email) {
+        return callback({
+          code: grpc.status.INVALID_ARGUMENT,
+          message: "template_id and email are required",
+        });
+      }
+
       try {
-        const { template_id, email, data } = call.request;
-        await emailService.send(template_id, email, { ...data, email });
+        const payload = fromStruct(data);
+        await emailService.send(template_id, email, { ...payload, email });
         callback(null, { success: true, message: "Notification sent" });
       } catch (err) {
         callback({
@@ -40,7 +50,10 @@ const createGrpcServer = (emailService) => {
       grpc.ServerCredentials.createInsecure(),
       (err) => {
         if (err) {
-          throw err;
+          logger.error(
+            `Failed to bind gRPC server on port ${port}: ${err.message}`,
+          );
+          process.exit(1);
         }
         logger.info(`Notification gRPC server running on port ${port}`);
       },

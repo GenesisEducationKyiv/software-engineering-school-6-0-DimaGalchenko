@@ -26,10 +26,16 @@ const start = () => {
   const grpcServer = createGrpcServer(emailService);
   grpcServer.start(config.grpcPort);
 
-  const shutdown = () => {
-    server.close();
-    grpcServer.stop();
-    process.exit(0);
+  const shutdown = async () => {
+    logger.info("Shutting down notification service...");
+    try {
+      await new Promise((resolve) => server.close(resolve));
+      await grpcServer.stop();
+      process.exit(0);
+    } catch (err) {
+      logger.error(`Error during shutdown: ${err.message}`);
+      process.exit(1);
+    }
   };
 
   process.on("SIGTERM", shutdown);

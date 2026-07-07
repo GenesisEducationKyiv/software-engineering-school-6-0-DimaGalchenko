@@ -1,5 +1,5 @@
 const { templates } = require("../templates");
-const { render } = require("../templates/render");
+const { render, renderHtml } = require("../templates/render");
 
 const createEmailService = ({ sender, emailFrom, linkBuilder }) => {
   const send = async (templateId, email, rawData) => {
@@ -11,7 +11,7 @@ const createEmailService = ({ sender, emailFrom, linkBuilder }) => {
       ? template.enrich(rawData, linkBuilder)
       : rawData;
     const subject = render(template.subject, vars);
-    const html = render(template.html, vars);
+    const html = renderHtml(template.html, vars);
     await sender.send({ from: emailFrom, to: email, subject, html });
   };
 

@@ -2,10 +2,13 @@ const path = require("path");
 const grpc = require("@grpc/grpc-js");
 const protoLoader = require("@grpc/proto-loader");
 const createGrpcNotificationClient = require("../../../clients/notification/grpcNotificationClient");
+const {
+  fromStruct,
+} = require("../../../notification-service/grpc/structCodec");
 
 const PROTO_PATH = path.join(
   __dirname,
-  "../../../notification-service/grpc/notification.proto",
+  "../../../clients/notification/notification.proto",
 );
 
 const startMockServer = (port, handlers) => {
@@ -16,7 +19,7 @@ const startMockServer = (port, handlers) => {
     defaults: true,
     oneofs: true,
   });
-  const proto = grpc.loadPackageDefinition(packageDefinition).notification;
+  const proto = grpc.loadPackageDefinition(packageDefinition).notification.v1;
 
   const server = new grpc.Server();
   server.addService(proto.NotificationService.service, handlers);
@@ -39,8 +42,10 @@ describe("GrpcNotificationClient", () => {
   let server;
   let client;
   const port = 50098;
+  const receivedRequests = [];
   const mockHandlers = {
-    Send: jest.fn((_call, callback) => {
+    Send: jest.fn((call, callback) => {
+      receivedRequests.push(call.request);
       callback(null, { success: true, message: "Sent" });
     }),
   };
@@ -57,7 +62,7 @@ describe("GrpcNotificationClient", () => {
   });
 
   describe("send", () => {
-    it("calls gRPC Send with templateId and data", async () => {
+    it("calls gRPC Send with templateId, email and data payload", async () => {
       const result = await client.send("confirmation", {
         email: "user@example.com",
         confirmToken: "token-123",
@@ -65,6 +70,11 @@ describe("GrpcNotificationClient", () => {
 
       expect(result.success).toBe(true);
       expect(mockHandlers.Send).toHaveBeenCalled();
+
+      const request = receivedRequests[0];
+      expect(request.template_id).toBe("confirmation");
+      expect(request.email).toBe("user@example.com");
+      expect(fromStruct(request.data)).toEqual({ confirmToken: "token-123" });
     });
   });
 });

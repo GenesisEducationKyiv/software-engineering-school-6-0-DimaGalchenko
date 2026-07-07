@@ -13,7 +13,9 @@ const createResendSender = (apiKey) => {
         html,
       });
       if (error) {
-        throw new Error(`Resend error: ${error.message}`);
+        throw new Error(
+          `Resend error: ${error.message || JSON.stringify(error)}`,
+        );
       }
       logger.info(`[email] sent via resend to ${to} | id: ${data.id}`);
     },
