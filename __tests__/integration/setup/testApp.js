@@ -1,6 +1,8 @@
-const createSubscriptionRepository = require("../../../repositories/subscriptionRepository");
-const createSubscriptionService = require("../../../services/subscriptionService");
-const { generateToken } = require("../../../services/tokenService");
+const {
+  createSubscriptionRepository,
+  createSubscriptionService,
+} = require("../../../modules/subscription");
+const { generateToken } = require("../../../shared/tokenService");
 const createApp = require("../../../app");
 
 const buildApp = (pool) => {
@@ -10,14 +12,14 @@ const buildApp = (pool) => {
     validateRepository: jest.fn().mockResolvedValue(undefined),
   };
 
-  const emailService = {
-    sendConfirmation: jest.fn().mockResolvedValue(undefined),
+  const notificationClient = {
+    send: jest.fn().mockResolvedValue(undefined),
   };
 
   const subscriptionService = createSubscriptionService({
     subscriptionRepository,
     githubService,
-    emailService,
+    notificationClient,
     generateToken,
   });
 
@@ -27,7 +29,7 @@ const buildApp = (pool) => {
     error: () => {},
   });
 
-  return { app, githubService, emailService };
+  return { app, githubService, notificationClient };
 };
 
 module.exports = { buildApp };

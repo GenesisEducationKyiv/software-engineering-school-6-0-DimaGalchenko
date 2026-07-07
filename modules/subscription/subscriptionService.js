@@ -1,4 +1,4 @@
-const { NotFoundError, ConflictError } = require("../utils/errors");
+const { NotFoundError, ConflictError } = require("../../shared/errors");
 const {
   validateEmail,
   validateRepo,
@@ -8,7 +8,7 @@ const {
 const createSubscriptionService = ({
   subscriptionRepository,
   githubService,
-  emailService,
+  notificationClient,
   generateToken,
 }) => {
   const subscribe = async (email, repo) => {
@@ -27,7 +27,10 @@ const createSubscriptionService = ({
     }
 
     if (existing && !existing.confirmed) {
-      await emailService.sendConfirmation(email, existing.confirm_token);
+      await notificationClient.send("confirmation", {
+        email,
+        confirmToken: existing.confirm_token,
+      });
       return;
     }
 
@@ -40,7 +43,7 @@ const createSubscriptionService = ({
       confirmToken,
       unsubscribeToken,
     });
-    await emailService.sendConfirmation(email, confirmToken);
+    await notificationClient.send("confirmation", { email, confirmToken });
   };
 
   const confirm = async (token) => {

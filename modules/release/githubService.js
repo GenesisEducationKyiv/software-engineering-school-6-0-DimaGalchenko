@@ -1,4 +1,4 @@
-const { NotFoundError, RateLimitError } = require("../utils/errors");
+const { NotFoundError, RateLimitError } = require("../../shared/errors");
 
 const createGithubService = ({ config, cacheService }) => {
   const buildHeaders = () => {

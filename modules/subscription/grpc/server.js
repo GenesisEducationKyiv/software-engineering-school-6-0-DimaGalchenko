@@ -6,7 +6,7 @@ const {
   NotFoundError,
   ConflictError,
   RateLimitError,
-} = require("../utils/errors");
+} = require("../../../shared/errors");
 
 const PROTO_PATH = path.join(__dirname, "subscription.proto");
 
