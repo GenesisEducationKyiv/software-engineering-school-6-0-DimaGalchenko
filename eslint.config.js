@@ -9,6 +9,7 @@ module.exports = [
       "coverage/",
       "notification-service/",
       "benchmark/",
+      "gen/",
     ],
   },
   js.configs.recommended,
