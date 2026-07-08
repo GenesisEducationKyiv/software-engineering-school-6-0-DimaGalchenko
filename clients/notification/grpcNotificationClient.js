@@ -3,7 +3,15 @@ const grpc = require("@grpc/grpc-js");
 const protoLoader = require("@grpc/proto-loader");
 const { toStruct } = require("./structCodec");
 
-const PROTO_PATH = path.join(__dirname, "notification.proto");
+const PROTO_PATH = path.join(
+  __dirname,
+  "..",
+  "..",
+  "proto",
+  "notification",
+  "v1",
+  "notification.proto",
+);
 const REQUEST_TIMEOUT_MS = 5000;
 
 const packageDefinition = protoLoader.loadSync(PROTO_PATH, {

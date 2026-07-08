@@ -8,7 +8,7 @@ const {
 
 const PROTO_PATH = path.join(
   __dirname,
-  "../../../clients/notification/notification.proto",
+  "../../../proto/notification/v1/notification.proto",
 );
 
 const startMockServer = (port, handlers) => {

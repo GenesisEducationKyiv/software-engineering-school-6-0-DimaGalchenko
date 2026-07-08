@@ -26,3 +26,6 @@ build/
 /test-results/
 /playwright-report/
 /playwright/.cache/
+
+# buf generated code (produced by `npm run proto:generate`)
+/gen/
