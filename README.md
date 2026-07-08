@@ -143,7 +143,5 @@ See [testing.md](testing.md) for full details on running unit, integration, and 
 - **Scheduling**: node-cron
 - **Metrics**: prom-client (Prometheus)
 - **Linting**: ESLint
-- **Testing**: Jest, Supertest, Playwright, Testcontainers
-- **CI**: GitHub Actions (lint + unit/integration/E2E tests)
-
-test
+- **Testing**: Jest, Supertest, Testcontainers
+- **CI**: GitHub Actions (lint + tests)
