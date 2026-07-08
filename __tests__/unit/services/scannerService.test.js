@@ -208,6 +208,37 @@ describe("ScannerService", () => {
       expect(
         deps.subscriptionRepository.updateLastSeenTagById,
       ).toHaveBeenCalledWith(2, "v2.0.0");
+      expect(
+        deps.subscriptionRepository.updateLastSeenTagById,
+      ).not.toHaveBeenCalledWith(1, expect.anything());
+    });
+
+    it("does not advance last_seen_tag past a failed notification", async () => {
+      deps.subscriptionRepository.findDistinctConfirmedRepos.mockResolvedValue([
+        "owner/repo",
+      ]);
+      deps.githubService.fetchReleases.mockResolvedValue([
+        { tagName: "v3.0.0", htmlUrl: "url-v3" },
+        { tagName: "v2.0.0", htmlUrl: "url-v2" },
+        { tagName: "v1.0.0", htmlUrl: "url-v1" },
+      ]);
+      deps.subscriptionRepository.findConfirmedByRepo.mockResolvedValue([
+        {
+          id: 1,
+          email: "user@example.com",
+          last_seen_tag: "v1.0.0",
+          unsubscribe_token: "unsub-1",
+        },
+      ]);
+      deps.notificationClient.send
+        .mockResolvedValueOnce(undefined)
+        .mockRejectedValueOnce(new Error("service down"));
+
+      await scanner.scan();
+
+      expect(
+        deps.subscriptionRepository.updateLastSeenTagById,
+      ).toHaveBeenCalledWith(1, "v2.0.0");
     });
 
     it("skips scan if previous scan is still running", async () => {

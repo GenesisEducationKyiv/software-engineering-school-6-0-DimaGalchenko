@@ -15,7 +15,7 @@ describe("HttpNotificationClient", () => {
   });
 
   describe("send", () => {
-    it("sends POST to /api/notifications/send with templateId and data", async () => {
+    it("sends POST to /api/notifications/send with templateId, email and data", async () => {
       global.fetch.mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({ success: true }),
@@ -28,14 +28,16 @@ describe("HttpNotificationClient", () => {
 
       expect(global.fetch).toHaveBeenCalledWith(
         "http://localhost:3001/api/notifications/send",
-        {
+        expect.objectContaining({
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             templateId: "confirmation",
-            data: { email: "user@example.com", confirmToken: "token-123" },
+            email: "user@example.com",
+            data: { confirmToken: "token-123" },
           }),
-        },
+          signal: expect.any(AbortSignal),
+        }),
       );
     });
 

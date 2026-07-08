@@ -16,7 +16,11 @@ const startDatabase = async () => {
     password: container.getPassword(),
   });
 
-  await runMigrations(pool);
+  await runMigrations(pool, {
+    info: () => {},
+    warn: () => {},
+    error: () => {},
+  });
 
   return pool;
 };

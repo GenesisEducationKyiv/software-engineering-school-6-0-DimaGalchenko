@@ -1,5 +1,7 @@
+const logger = require("../shared/logger");
+
 const errorHandler = (err, _req, res, _next) => {
-  console.error(err);
+  logger.error(err);
   res.status(500).json({ success: false, message: "Internal server error" });
 };
 

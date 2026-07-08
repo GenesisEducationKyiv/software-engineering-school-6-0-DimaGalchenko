@@ -7,10 +7,9 @@ const createApp = require("./app");
 const createGrpcServer = require("./grpc/server");
 const createNotificationConsumer = require("./kafka/consumer");
 const createResultProducer = require("./kafka/producer");
-const createLogger = require("./shared/logger");
+const logger = require("./shared/logger");
 
 const start = async () => {
-  const logger = createLogger();
   const sender = createSender(config.email);
   const linkBuilder = createEmailLinkBuilder(config.baseUrl);
 
@@ -44,11 +43,17 @@ const start = async () => {
   await consumer.start();
 
   const shutdown = async () => {
-    await consumer.stop();
-    await resultProducer.disconnect();
-    server.close();
-    grpcServer.stop();
-    process.exit(0);
+    logger.info("Shutting down notification service...");
+    try {
+      await consumer.stop();
+      await resultProducer.disconnect();
+      await new Promise((resolve) => server.close(resolve));
+      await grpcServer.stop();
+      process.exit(0);
+    } catch (err) {
+      logger.error(`Error during shutdown: ${err.message}`);
+      process.exit(1);
+    }
   };
 
   process.on("SIGTERM", shutdown);

@@ -6,7 +6,7 @@ const {
 const { generateToken } = require("../../../shared/tokenService");
 const createApp = require("../../../app");
 
-const noopLogger = { info: () => {}, error: () => {} };
+const noopLogger = { info: () => {}, warn: () => {}, error: () => {} };
 
 const buildApp = (pool) => {
   const subscriptionRepository = createSubscriptionRepository(pool);
@@ -35,7 +35,12 @@ const buildApp = (pool) => {
     saga,
   });
 
-  const app = createApp(subscriptionService);
+  const app = createApp(
+    subscriptionService,
+    subscriptionRepository,
+    undefined,
+    noopLogger,
+  );
 
   return { app, githubService, notificationClient };
 };

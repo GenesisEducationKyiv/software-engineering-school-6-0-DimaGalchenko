@@ -25,7 +25,7 @@ const getMigrationFiles = () => {
     .sort();
 };
 
-const runMigrations = async (pool) => {
+const runMigrations = async (pool, logger = console) => {
   await ensureMigrationsTable(pool);
 
   const applied = await getAppliedMigrations(pool);
@@ -44,7 +44,7 @@ const runMigrations = async (pool) => {
       await client.query(sql);
       await client.query("INSERT INTO migrations (name) VALUES ($1)", [file]);
       await client.query("COMMIT");
-      console.log(`Migration applied: ${file}`);
+      logger.info(`Migration applied: ${file}`);
     } catch (err) {
       await client.query("ROLLBACK");
       throw err;
