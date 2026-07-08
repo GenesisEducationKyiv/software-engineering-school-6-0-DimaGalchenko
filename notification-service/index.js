@@ -5,9 +5,10 @@ const createEmailLinkBuilder = require("./services/emailLinkBuilder");
 const createEmailService = require("./services/emailService");
 const createApp = require("./app");
 const createGrpcServer = require("./grpc/server");
+const createNotificationConsumer = require("./kafka/consumer");
 const logger = require("./shared/logger");
 
-const start = () => {
+const start = async () => {
   const sender = createSender(config.email);
   const linkBuilder = createEmailLinkBuilder(config.baseUrl);
 
@@ -26,20 +27,25 @@ const start = () => {
   const grpcServer = createGrpcServer(emailService);
   grpcServer.start(config.grpcPort);
 
+  const consumer = createNotificationConsumer({
+    emailService,
+    kafkaBroker: config.kafkaBroker,
+    logger,
+  });
+  await consumer.start();
+
   const shutdown = async () => {
-    logger.info("Shutting down notification service...");
-    try {
-      await new Promise((resolve) => server.close(resolve));
-      await grpcServer.stop();
-      process.exit(0);
-    } catch (err) {
-      logger.error(`Error during shutdown: ${err.message}`);
-      process.exit(1);
-    }
+    await consumer.stop();
+    await new Promise((resolve) => server.close(resolve));
+    grpcServer.stop();
+    process.exit(0);
   };
 
   process.on("SIGTERM", shutdown);
   process.on("SIGINT", shutdown);
 };
 
-start();
+start().catch((err) => {
+  console.error("Failed to start notification-service:", err);
+  process.exit(1);
+});

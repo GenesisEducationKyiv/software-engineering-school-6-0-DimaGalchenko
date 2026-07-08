@@ -3,9 +3,6 @@ const grpc = require("@grpc/grpc-js");
 const protoLoader = require("@grpc/proto-loader");
 const express = require("express");
 
-const createHttpNotificationClient = require("../clients/notification/httpNotificationClient");
-const createGrpcNotificationClient = require("../clients/notification/grpcNotificationClient");
-
 const N = 1000;
 
 const PROTO_PATH = path.join(
@@ -16,31 +13,41 @@ const PROTO_PATH = path.join(
   "notification.proto",
 );
 
-const packageDefinition = protoLoader.loadSync(PROTO_PATH, {
-  keepCase: true,
-  longs: String,
-  enums: String,
-  defaults: true,
-  oneofs: true,
-});
-const notificationProto =
-  grpc.loadPackageDefinition(packageDefinition).notification.v1;
-
-// Mock notification service exposing the real contract:
-// POST /api/notifications/send and the Send RPC, without real email sending.
 const startMockNotificationService = () => {
+  const mockEmailService = {
+    sendConfirmation: () => Promise.resolve(),
+    sendReleaseNotification: () => Promise.resolve(),
+  };
+
   const app = express();
   app.use(express.json());
-  app.post("/api/notifications/send", (_req, res) => {
-    res.json({ success: true, message: "Notification sent" });
+  app.post("/api/notifications/confirmation", (_req, res) => {
+    res.json({ success: true, message: "Sent" });
+  });
+  app.post("/api/notifications/release", (_req, res) => {
+    res.json({ success: true, message: "Sent" });
   });
 
   const httpServer = app.listen(3099);
 
+  const packageDefinition = protoLoader.loadSync(PROTO_PATH, {
+    keepCase: true,
+    longs: String,
+    enums: String,
+    defaults: true,
+    oneofs: true,
+  });
+  const proto = grpc.loadPackageDefinition(packageDefinition).notification;
+
   const grpcServer = new grpc.Server();
-  grpcServer.addService(notificationProto.NotificationService.service, {
-    Send: (_call, callback) => {
-      callback(null, { success: true, message: "Notification sent" });
+  grpcServer.addService(proto.NotificationService.service, {
+    SendConfirmation: async (_call, callback) => {
+      await mockEmailService.sendConfirmation();
+      callback(null, { success: true, message: "Sent" });
+    },
+    SendReleaseNotification: async (_call, callback) => {
+      await mockEmailService.sendReleaseNotification();
+      callback(null, { success: true, message: "Sent" });
     },
   });
 
@@ -53,6 +60,8 @@ const startMockNotificationService = () => {
           return reject(err);
         }
         return resolve({
+          httpServer,
+          grpcServer,
           stop: () =>
             new Promise((res) => {
               httpServer.close();
@@ -64,6 +73,42 @@ const startMockNotificationService = () => {
   });
 };
 
+const createHttpClient = (baseUrl) => ({
+  sendConfirmation: async (email, confirmToken) => {
+    const response = await fetch(`${baseUrl}/api/notifications/confirmation`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, confirmToken }),
+    });
+    return response.json();
+  },
+});
+
+const createGrpcClient = (url) => {
+  const packageDefinition = protoLoader.loadSync(PROTO_PATH, {
+    keepCase: true,
+    longs: String,
+    enums: String,
+    defaults: true,
+    oneofs: true,
+  });
+  const proto = grpc.loadPackageDefinition(packageDefinition).notification;
+  const client = new proto.NotificationService(
+    url,
+    grpc.credentials.createInsecure(),
+  );
+
+  return {
+    sendConfirmation: (email, confirmToken) =>
+      new Promise((resolve, reject) => {
+        client.SendConfirmation(
+          { email, confirm_token: confirmToken },
+          (err, response) => (err ? reject(err) : resolve(response)),
+        );
+      }),
+  };
+};
+
 const percentile = (sorted, p) => {
   const idx = Math.ceil((p / 100) * sorted.length) - 1;
   return sorted[Math.max(0, idx)];
@@ -73,18 +118,12 @@ const runBenchmark = async (name, client) => {
   const latencies = [];
 
   for (let i = 0; i < 5; i++) {
-    await client.send("confirmation", {
-      email: "bench@example.com",
-      confirmToken: "warmup-token",
-    });
+    await client.sendConfirmation("bench@example.com", "warmup-token");
   }
 
   for (let i = 0; i < N; i++) {
     const start = process.hrtime.bigint();
-    await client.send("confirmation", {
-      email: "bench@example.com",
-      confirmToken: `token-${i}`,
-    });
+    await client.sendConfirmation("bench@example.com", `token-${i}`);
     const end = process.hrtime.bigint();
     latencies.push(Number(end - start) / 1e6);
   }
@@ -106,13 +145,13 @@ const runBenchmark = async (name, client) => {
 };
 
 const main = async () => {
-  console.log(`Starting benchmark: ${N} send("confirmation") requests each\n`);
+  console.log(`Starting benchmark: ${N} sendConfirmation requests each\n`);
 
   const service = await startMockNotificationService();
 
   try {
-    const httpClient = createHttpNotificationClient("http://localhost:3099");
-    const grpcClient = createGrpcNotificationClient("localhost:50099");
+    const httpClient = createHttpClient("http://localhost:3099");
+    const grpcClient = createGrpcClient("localhost:50099");
 
     const httpResult = await runBenchmark("HTTP", httpClient);
     const grpcResult = await runBenchmark("gRPC", grpcClient);

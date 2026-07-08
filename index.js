@@ -16,11 +16,12 @@ const {
 } = require("./modules/subscription");
 const {
   createGithubService,
-  createScannerService,
-  createSchedulerService,
+  createReleaseEventConsumer,
 } = require("./modules/release");
 const { createNotificationClient } = require("./clients/notification");
 const createApp = require("./app");
+const createInternalApp = require("./internalApp");
+
 const logger = createLogger(config);
 
 const start = async () => {
@@ -49,7 +50,15 @@ const start = async () => {
 
   const githubService = createGithubService({ config, cacheService });
 
-  const notificationClient = createNotificationClient(config);
+  const notificationClient = createNotificationClient(config, logger);
+  try {
+    await notificationClient.connect();
+  } catch (err) {
+    logger.error(
+      `[kafka] notification client failed to connect to broker ${config.kafkaBroker}: ${err.message}`,
+    );
+    throw err;
+  }
 
   const subscriptionService = createSubscriptionService({
     subscriptionRepository: {
@@ -67,17 +76,16 @@ const start = async () => {
     generateToken,
   });
 
-  const scannerService = createScannerService({
+  const releaseEventConsumer = createReleaseEventConsumer({
+    kafkaBroker: config.kafkaBroker,
     subscriptionRepository: {
-      findDistinctConfirmedRepos:
-        subscriptionRepository.findDistinctConfirmedRepos,
       findConfirmedByRepo: subscriptionRepository.findConfirmedByRepo,
       updateLastSeenTagById: subscriptionRepository.updateLastSeenTagById,
     },
-    githubService,
     notificationClient,
     logger,
   });
+  await releaseEventConsumer.start();
 
   const app = createApp(subscriptionService, config.apiKey, logger);
 
@@ -85,16 +93,23 @@ const start = async () => {
     logger.info(`Server is running on port ${config.port}`);
   });
 
-  const schedulerService = createSchedulerService();
-  schedulerService.start(config.scanCron, () => scannerService.scan());
+  // Internal routes run on a separate port that is NOT published to the host
+  // in docker-compose, so they are reachable only from within the Docker
+  // network (e.g. release-service) and never from the internet.
+  const internalApp = createInternalApp(subscriptionRepository, config.apiKey);
+  const internalServer = internalApp.listen(config.internalPort, () => {
+    console.log(`Internal server is running on port ${config.internalPort}`);
+  });
 
   const grpcServer = createSubscriptionGrpcServer(subscriptionService);
   grpcServer.start(config.grpcPort);
 
   const shutdown = async () => {
-    schedulerService.stop();
-    server.close();
+    await new Promise((resolve) => server.close(resolve));
+    await new Promise((resolve) => internalServer.close(resolve));
     await grpcServer.stop();
+    await notificationClient.disconnect();
+    await releaseEventConsumer.stop();
     await pool.end();
     process.exit(0);
   };
