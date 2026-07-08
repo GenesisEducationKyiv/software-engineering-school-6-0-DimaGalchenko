@@ -1,6 +1,7 @@
-const createLogger = () => ({
+const logger = {
   info: (...args) => console.log(...args),
+  warn: (...args) => console.warn(...args),
   error: (...args) => console.error(...args),
-});
+};
 
-module.exports = createLogger;
+module.exports = logger;

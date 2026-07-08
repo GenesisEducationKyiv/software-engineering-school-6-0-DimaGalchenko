@@ -6,10 +6,9 @@ const createEmailService = require("./services/emailService");
 const createApp = require("./app");
 const createGrpcServer = require("./grpc/server");
 const createNotificationConsumer = require("./kafka/consumer");
-const createLogger = require("./shared/logger");
+const logger = require("./shared/logger");
 
 const start = async () => {
-  const logger = createLogger();
   const sender = createSender(config.email);
   const linkBuilder = createEmailLinkBuilder(config.baseUrl);
 
