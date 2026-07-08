@@ -4,7 +4,12 @@ const eslintPluginPrettier = require("eslint-plugin-prettier/recommended");
 
 module.exports = [
   {
-    ignores: ["node_modules/", "coverage/"],
+    ignores: [
+      "node_modules/",
+      "coverage/",
+      "notification-service/",
+      "benchmark/",
+    ],
   },
   js.configs.recommended,
   eslintPluginPrettier,
@@ -60,6 +65,14 @@ module.exports = [
     languageOptions: {
       globals: {
         ...globals.jest,
+      },
+    },
+  },
+  {
+    files: ["e2e/**/*.js"],
+    languageOptions: {
+      globals: {
+        ...globals.node,
       },
     },
   },

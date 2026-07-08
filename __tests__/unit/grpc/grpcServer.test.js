@@ -1,14 +1,17 @@
 const grpc = require("@grpc/grpc-js");
 const protoLoader = require("@grpc/proto-loader");
 const path = require("path");
-const createGrpcServer = require("../../../grpc/server");
+const createGrpcServer = require("../../../modules/subscription/grpc/server");
 const {
   ValidationError,
   NotFoundError,
   ConflictError,
-} = require("../../../utils/errors");
+} = require("../../../shared/errors");
 
-const PROTO_PATH = path.join(__dirname, "../../../grpc/subscription.proto");
+const PROTO_PATH = path.join(
+  __dirname,
+  "../../../modules/subscription/grpc/subscription.proto",
+);
 
 const loadClient = (port) => {
   const packageDefinition = protoLoader.loadSync(PROTO_PATH, {

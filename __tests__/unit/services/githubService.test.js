@@ -1,5 +1,5 @@
-const createGithubService = require("../../../services/githubService");
-const { NotFoundError, RateLimitError } = require("../../../utils/errors");
+const createGithubService = require("../../../modules/release/githubService");
+const { NotFoundError, RateLimitError } = require("../../../shared/errors");
 
 const createMockConfig = (token = "") => ({
   github: {

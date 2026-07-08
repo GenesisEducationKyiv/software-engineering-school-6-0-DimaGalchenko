@@ -1,17 +1,25 @@
 const path = require("path");
 const express = require("express");
-const createRoutes = require("./routes");
-const errorHandler = require("./middleware/errorHandler");
+const {
+  createSubscriptionRoutes,
+  createInternalRoutes,
+} = require("./modules/subscription");
+const createErrorHandler = require("./middleware/errorHandler");
 const createAuthMiddleware = require("./middleware/authMiddleware");
 const {
-  metricsMiddleware,
+  createRequestMiddleware,
   register,
 } = require("./middleware/metricsMiddleware");
 
-const createApp = (subscriptionService, apiKey) => {
+const createApp = (
+  subscriptionService,
+  subscriptionRepository = null,
+  apiKey,
+  logger,
+) => {
   const app = express();
 
-  app.use(metricsMiddleware);
+  app.use(createRequestMiddleware(logger));
 
   app.get("/metrics", async (req, res) => {
     res.set("Content-Type", register.contentType);
@@ -29,12 +37,20 @@ const createApp = (subscriptionService, apiKey) => {
     res.sendFile(path.join(__dirname, "public", "unsubscribe.html"));
   });
 
+  if (subscriptionRepository) {
+    app.use(
+      "/api/internal",
+      createAuthMiddleware(apiKey),
+      createInternalRoutes(subscriptionRepository),
+    );
+  }
+
   app.use(
     "/api",
     createAuthMiddleware(apiKey),
-    createRoutes(subscriptionService),
+    createSubscriptionRoutes(subscriptionService),
   );
-  app.use(errorHandler);
+  app.use(createErrorHandler(logger));
 
   return app;
 };

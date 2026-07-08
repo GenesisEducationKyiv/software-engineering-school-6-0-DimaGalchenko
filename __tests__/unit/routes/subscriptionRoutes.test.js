@@ -4,7 +4,7 @@ const {
   NotFoundError,
   ConflictError,
   ValidationError,
-} = require("../../../utils/errors");
+} = require("../../../shared/errors");
 
 const createMockSubscriptionService = () => ({
   subscribe: jest.fn().mockResolvedValue(undefined),
@@ -20,7 +20,11 @@ describe("Subscription Routes", () => {
 
   beforeEach(() => {
     mockService = createMockSubscriptionService();
-    app = createApp(mockService);
+    app = createApp(mockService, undefined, undefined, {
+      info: () => {},
+      warn: () => {},
+      error: () => {},
+    });
   });
 
   describe("POST /api/subscribe", () => {

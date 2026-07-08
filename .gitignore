@@ -21,3 +21,8 @@ Thumbs.db
 # Build
 dist/
 build/
+
+# Playwright
+/test-results/
+/playwright-report/
+/playwright/.cache/

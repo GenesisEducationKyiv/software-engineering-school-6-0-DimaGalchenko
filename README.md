@@ -131,19 +131,7 @@ Repository validation responses are cached in Redis with a 10-minute TTL to redu
 
 ## Testing
 
-```bash
-# Lint
-npm run lint
-
-# Unit tests
-npm test
-
-# Integration tests with real PostgreSQL via testcontainers
-npm run test:integration
-
-# Coverage report
-npm run test:coverage
-```
+See [testing.md](testing.md) for full details on running unit, integration, and E2E tests.
 
 ## Tech Stack
 

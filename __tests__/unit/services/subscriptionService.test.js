@@ -1,32 +1,30 @@
 const crypto = require("crypto");
-const createSubscriptionService = require("../../../services/subscriptionService");
-
-const VALID_TOKEN = "550e8400-e29b-41d4-a716-446655440000";
-const UNKNOWN_TOKEN = "660e8400-e29b-41d4-a716-446655440000";
-const EXISTING_TOKEN = "770e8400-e29b-41d4-a716-446655440000";
+const createSubscriptionService = require("../../../modules/subscription/subscriptionService");
 const {
   ValidationError,
   NotFoundError,
   ConflictError,
-} = require("../../../utils/errors");
+} = require("../../../shared/errors");
+
+const VALID_TOKEN = "550e8400-e29b-41d4-a716-446655440000";
+const UNKNOWN_TOKEN = "660e8400-e29b-41d4-a716-446655440000";
 
 const createMockDependencies = () => ({
   subscriptionRepository: {
     findByEmailAndRepo: jest.fn(),
-    create: jest.fn(),
     findByConfirmToken: jest.fn(),
     findByUnsubscribeToken: jest.fn(),
     confirmByToken: jest.fn(),
     deleteByUnsubscribeToken: jest.fn(),
     findConfirmedByEmail: jest.fn(),
+    findAllByEmail: jest.fn(),
   },
-  githubService: {
-    validateRepository: jest.fn().mockResolvedValue(true),
-  },
-  emailService: {
-    sendConfirmation: jest.fn().mockResolvedValue(undefined),
-  },
+  githubService: { validateRepository: jest.fn().mockResolvedValue(true) },
   generateToken: () => crypto.randomUUID(),
+  saga: {
+    start: jest.fn().mockResolvedValue({ id: 1 }),
+    resend: jest.fn().mockResolvedValue(undefined),
+  },
 });
 
 describe("SubscriptionService", () => {
@@ -39,25 +37,48 @@ describe("SubscriptionService", () => {
   });
 
   describe("subscribe", () => {
-    it("creates subscription and sends confirmation email", async () => {
+    it("starts the saga for a brand-new subscription", async () => {
       deps.subscriptionRepository.findByEmailAndRepo.mockResolvedValue(null);
-      deps.subscriptionRepository.create.mockResolvedValue({ id: 1 });
 
       await service.subscribe("user@example.com", "owner/repo");
 
       expect(deps.githubService.validateRepository).toHaveBeenCalledWith(
         "owner/repo",
       );
-      expect(deps.subscriptionRepository.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          email: "user@example.com",
-          repo: "owner/repo",
-        }),
-      );
-      expect(deps.emailService.sendConfirmation).toHaveBeenCalledWith(
+      expect(deps.saga.start).toHaveBeenCalledWith(
         "user@example.com",
+        "owner/repo",
+        expect.any(String),
         expect.any(String),
       );
+    });
+
+    it("resends via the saga for an existing unconfirmed subscription", async () => {
+      const existing = {
+        id: 8,
+        email: "user@example.com",
+        confirmed: false,
+        confirm_token: "ctok",
+      };
+      deps.subscriptionRepository.findByEmailAndRepo.mockResolvedValue(
+        existing,
+      );
+
+      await service.subscribe("user@example.com", "owner/repo");
+
+      expect(deps.saga.resend).toHaveBeenCalledWith(existing);
+      expect(deps.saga.start).not.toHaveBeenCalled();
+    });
+
+    it("throws ConflictError when already confirmed", async () => {
+      deps.subscriptionRepository.findByEmailAndRepo.mockResolvedValue({
+        id: 8,
+        confirmed: true,
+      });
+
+      await expect(
+        service.subscribe("user@example.com", "owner/repo"),
+      ).rejects.toThrow(ConflictError);
     });
 
     it("throws ValidationError for invalid email", async () => {
@@ -84,32 +105,6 @@ describe("SubscriptionService", () => {
       ).rejects.toThrow(ValidationError);
     });
 
-    it("throws ConflictError when already subscribed and confirmed", async () => {
-      deps.subscriptionRepository.findByEmailAndRepo.mockResolvedValue({
-        confirmed: true,
-        confirm_token: VALID_TOKEN,
-      });
-
-      await expect(
-        service.subscribe("user@example.com", "owner/repo"),
-      ).rejects.toThrow(ConflictError);
-    });
-
-    it("resends confirmation when subscription exists but not confirmed", async () => {
-      deps.subscriptionRepository.findByEmailAndRepo.mockResolvedValue({
-        confirmed: false,
-        confirm_token: EXISTING_TOKEN,
-      });
-
-      await service.subscribe("user@example.com", "owner/repo");
-
-      expect(deps.subscriptionRepository.create).not.toHaveBeenCalled();
-      expect(deps.emailService.sendConfirmation).toHaveBeenCalledWith(
-        "user@example.com",
-        EXISTING_TOKEN,
-      );
-    });
-
     it("propagates NotFoundError from githubService", async () => {
       deps.githubService.validateRepository.mockRejectedValue(
         new NotFoundError("Repository not found on GitHub"),
@@ -122,10 +117,10 @@ describe("SubscriptionService", () => {
   });
 
   describe("confirm", () => {
-    it("confirms subscription by token", async () => {
+    it("confirms a subscription whose email was sent", async () => {
       deps.subscriptionRepository.findByConfirmToken.mockResolvedValue({
         id: 1,
-        confirmed: false,
+        confirmation_email_status: "sent",
       });
 
       await service.confirm(VALID_TOKEN);
@@ -135,7 +130,24 @@ describe("SubscriptionService", () => {
       );
     });
 
-    it("throws NotFoundError for unknown token", async () => {
+    it("allows confirming a pending subscription (reply race not yet processed)", async () => {
+      deps.subscriptionRepository.findByConfirmToken.mockResolvedValue({
+        id: 1,
+        confirmation_email_status: "pending",
+      });
+
+      await service.confirm(VALID_TOKEN);
+
+      expect(deps.subscriptionRepository.confirmByToken).toHaveBeenCalledWith(
+        VALID_TOKEN,
+      );
+    });
+
+    it("throws ValidationError for empty token", async () => {
+      await expect(service.confirm("")).rejects.toThrow(ValidationError);
+    });
+
+    it("throws NotFoundError for an unknown token", async () => {
       deps.subscriptionRepository.findByConfirmToken.mockResolvedValue(null);
 
       await expect(service.confirm(UNKNOWN_TOKEN)).rejects.toThrow(
@@ -143,8 +155,14 @@ describe("SubscriptionService", () => {
       );
     });
 
-    it("throws ValidationError for empty token", async () => {
-      await expect(service.confirm("")).rejects.toThrow(ValidationError);
+    it("throws ConflictError when the confirmation email failed", async () => {
+      deps.subscriptionRepository.findByConfirmToken.mockResolvedValue({
+        id: 1,
+        confirmation_email_status: "failed",
+      });
+
+      await expect(service.confirm(VALID_TOKEN)).rejects.toThrow(ConflictError);
+      expect(deps.subscriptionRepository.confirmByToken).not.toHaveBeenCalled();
     });
   });
 
